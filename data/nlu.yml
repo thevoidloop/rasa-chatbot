@@ -1,0 +1,143 @@
+version: "3.1"
+
+nlu:
+- intent: saludar
+  examples: |
+    - hola
+    - buenos días
+    - buenas tardes
+    - qué tal
+    - saludos
+    - hey
+    - hola qué tal
+
+- intent: despedir
+  examples: |
+    - adiós
+    - hasta luego
+    - nos vemos
+    - que tengas buen día
+    - chao
+    - bye
+
+- intent: consultar_catalogo
+  examples: |
+    - quiero ver el catálogo
+    - muéstrame los productos
+    - qué productos tienen
+    - ver catálogo
+    - productos disponibles
+    - qué venden
+    - enséñame lo que venden
+    - qué hay disponible
+
+- intent: consultar_precio
+  examples: |
+    - cuánto cuesta la [camisa](producto)
+    - precio de [camisa](producto)
+    - valor de la [falda](producto)
+    - qué precio tiene el [pantalón](producto)
+    - cuánto vale la [blusa](producto)
+    - precio del [vestido](producto)
+    - cuánto cuesta el [jean](producto)
+    - valor del [suéter](producto)
+    - precios de [camisas](producto)
+
+- intent: hacer_pedido
+  examples: |
+    - quiero comprar [5](cantidad) [camisas](producto)
+    - necesito [2](cantidad) [pantalones](producto)
+    - pedido de [10](cantidad) [blusas](producto)
+    - comprar [1](cantidad) [falda](producto)
+    - quiero [3](cantidad) [vestidos](producto)
+    - necesito [2](cantidad) [jeans](producto) talla [M](talla)
+    - comprar [1](cantidad) [suéter](producto) color [rojo](color)
+    - quiero una [camisa](producto) talla [L](talla) color [azul](color)
+
+- intent: consultar_disponibilidad
+  examples: |
+    - tienen [camisas](producto) disponibles
+    - hay stock de [pantalones](producto)
+    - disponibilidad de [blusas](producto)
+    - está disponible la [falda](producto)
+    - tienen [vestidos](producto) en stock
+    - hay [jeans](producto) disponibles
+    - stock de [suéteres](producto)
+    - tienen [camisas](producto) talla [M](talla)
+    - hay [pantalones](producto) color [negro](color)
+
+- intent: afirmar
+  examples: |
+    - sí
+    - correcto
+    - exacto
+    - así es
+    - perfecto
+    - de acuerdo
+    - ok
+    - está bien
+
+- intent: negar
+  examples: |
+    - no
+    - no gracias
+    - incorrecto
+    - no es así
+    - no quiero
+    - cancelar
+    - no me interesa
+
+- intent: out_of_scope
+  examples: |
+    - cómo está el clima
+    - qué hora es
+    - cuéntame un chiste
+    - ayuda con matemáticas
+    - información personal tuya
+    - quién eres
+    - qué edad tienes
+    - dónde vives
+    - cuál es tu nombre
+    - hablas otros idiomas
+
+- lookup: producto
+  examples: |
+    - camisa
+    - pantalón
+    - falda
+    - blusa
+    - vestido
+    - jean
+    - suéter
+    - playera
+    - shorts
+    - chaqueta
+
+- lookup: talla
+  examples: |
+    - XS
+    - S
+    - M
+    - L
+    - XL
+    - XXL
+    - pequeña
+    - mediana
+    - grande
+    - extra grande
+    - extra pequeña
+
+- lookup: color
+  examples: |
+    - rojo
+    - azul
+    - verde
+    - negro
+    - blanco
+    - amarillo
+    - rosa
+    - morado
+    - gris
+    - naranja
+    - café
+    - beige

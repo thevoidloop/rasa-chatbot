@@ -1,0 +1,108 @@
+version: "3.1"
+
+intents:
+  - saludar
+  - despedir
+  - consultar_catalogo
+  - consultar_precio
+  - hacer_pedido
+  - consultar_disponibilidad
+  - afirmar
+  - negar
+  - out_of_scope
+
+entities:
+  - producto
+  - cantidad
+  - talla
+  - color
+
+slots:
+  producto_seleccionado:
+    type: text
+    influence_conversation: true
+    mappings:
+    - type: from_entity
+      entity: producto
+  
+  cantidad:
+    type: float
+    influence_conversation: true
+    mappings:
+    - type: from_entity
+      entity: cantidad
+  
+  nombre_cliente:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_text
+      conditions:
+      - active_loop: form_datos_cliente
+        requested_slot: nombre_cliente
+  
+  telefono_cliente:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_text
+      conditions:
+      - active_loop: form_datos_cliente
+        requested_slot: telefono_cliente
+  
+  direccion_cliente:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_text
+      conditions:
+      - active_loop: form_datos_cliente
+        requested_slot: direccion_cliente
+
+responses:
+  utter_saludar:
+  - text: "¡Hola! ¿En qué puedo ayudarte hoy?"
+  - text: "¡Buenos días! ¿Qué necesitas?"
+  
+  utter_despedir:
+  - text: "¡Hasta luego! Que tengas un excelente día."
+  - text: "¡Adiós! Gracias por contactarnos."
+  
+  utter_default:
+  - text: "Lo siento, no entendí bien. ¿Podrías reformular tu pregunta?"
+  
+  utter_fuera_de_contexto:
+  - text: "Soy un asistente de ventas. ¿Te puedo ayudar con información sobre nuestros productos?"
+  
+  utter_ask_nombre_cliente:
+  - text: "¿Cuál es tu nombre completo?"
+  
+  utter_ask_telefono_cliente:
+  - text: "¿Podrías proporcionarme tu número de teléfono?"
+  
+  utter_ask_direccion_cliente:
+  - text: "¿Cuál es tu dirección de entrega?"
+
+actions:
+  - action_mostrar_catalogo
+  - action_consultar_precio
+  - action_verificar_disponibilidad
+  - action_crear_pedido
+  - utter_saludar
+  - utter_despedir
+  - utter_default
+  - utter_fuera_de_contexto
+  - utter_ask_nombre_cliente
+  - utter_ask_telefono_cliente
+  - utter_ask_direccion_cliente
+
+forms:
+  form_datos_cliente:
+    required_slots:
+      - nombre_cliente
+      - telefono_cliente
+      - direccion_cliente
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

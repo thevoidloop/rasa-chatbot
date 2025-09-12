@@ -1,0 +1,18 @@
+version: "3.1"
+
+rules:
+
+- rule: Saludar siempre
+  steps:
+  - intent: saludar
+  - action: utter_saludar
+
+- rule: Despedirse siempre
+  steps:
+  - intent: despedir
+  - action: utter_despedir
+
+- rule: Respuesta a mensajes fuera de contexto
+  steps:
+  - intent: out_of_scope
+  - action: utter_fuera_de_contexto

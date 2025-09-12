@@ -1,0 +1,39 @@
+version: "3.1"
+
+stories:
+
+- story: saludo y consulta catálogo
+  steps:
+  - intent: saludar
+  - action: utter_saludar
+  - intent: consultar_catalogo
+  - action: action_mostrar_catalogo
+
+- story: consulta precio de producto específico
+  steps:
+  - intent: consultar_precio
+    entities:
+    - producto: "camisa"
+  - slot_was_set:
+    - producto_seleccionado: "camisa"
+  - action: action_consultar_precio
+
+- story: verificar disponibilidad y hacer pedido
+  steps:
+  - intent: consultar_disponibilidad
+    entities:
+    - producto: "pantalón"
+  - slot_was_set:
+    - producto_seleccionado: "pantalón"
+  - action: action_verificar_disponibilidad
+  - intent: hacer_pedido
+    entities:
+    - cantidad: 2
+  - action: action_crear_pedido
+  - intent: despedir
+  - action: utter_despedir
+
+- story: mensaje fuera de contexto
+  steps:
+  - intent: out_of_scope
+  - action: utter_fuera_de_contexto
