@@ -1,0 +1,8 @@
+# endpoints-minimal-working.yml - Sin PostgreSQL para pruebas
+
+# Configuración del servidor de acciones
+action_endpoint:
+  url: "http://rasa-action-server:5055/webhook"
+
+# SIN tracker_store - usará memoria por defecto
+# tracker_store: memory (implícito)

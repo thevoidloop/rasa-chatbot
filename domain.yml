@@ -10,12 +10,19 @@ intents:
   - afirmar
   - negar
   - out_of_scope
+  - consultar_pedido
+  - proporcionar_telefono
+  - proporcionar_nombre
+  - proporcionar_direccion
 
 entities:
   - producto
   - cantidad
   - talla
   - color
+  - telefono
+  - nombre
+  - direccion
 
 slots:
   producto_seleccionado:
@@ -32,6 +39,32 @@ slots:
     - type: from_entity
       entity: cantidad
   
+  # Slots para el proceso de pedido
+  pedido_id:
+    type: float
+    influence_conversation: false
+    mappings:
+    - type: custom
+    
+  pedido_producto_id:
+    type: float
+    influence_conversation: false
+    mappings:
+    - type: custom
+    
+  pedido_precio_unitario:
+    type: float
+    influence_conversation: false
+    mappings:
+    - type: custom
+    
+  pedido_total:
+    type: float
+    influence_conversation: false
+    mappings:
+    - type: custom
+  
+  # Slots para datos del cliente
   nombre_cliente:
     type: text
     influence_conversation: false
@@ -40,6 +73,8 @@ slots:
       conditions:
       - active_loop: form_datos_cliente
         requested_slot: nombre_cliente
+    - type: from_entity
+      entity: nombre
   
   telefono_cliente:
     type: text
@@ -49,6 +84,8 @@ slots:
       conditions:
       - active_loop: form_datos_cliente
         requested_slot: telefono_cliente
+    - type: from_entity
+      entity: telefono
   
   direccion_cliente:
     type: text
@@ -58,43 +95,78 @@ slots:
       conditions:
       - active_loop: form_datos_cliente
         requested_slot: direccion_cliente
+    - type: from_entity
+      entity: direccion
 
 responses:
   utter_saludar:
-  - text: "¡Hola! ¿En qué puedo ayudarte hoy?"
-  - text: "¡Buenos días! ¿Qué necesitas?"
+  - text: "¡Hola! 👋 Bienvenido a nuestra tienda. ¿En qué puedo ayudarte hoy?"
+  - text: "¡Buenos días! 🌟 ¿Qué producto te interesa conocer?"
+  - text: "¡Hola! 😊 Estoy aquí para ayudarte con nuestros productos. ¿Qué necesitas?"
   
   utter_despedir:
-  - text: "¡Hasta luego! Que tengas un excelente día."
-  - text: "¡Adiós! Gracias por contactarnos."
+  - text: "¡Hasta luego! 👋 Que tengas un excelente día. Gracias por visitarnos."
+  - text: "¡Adiós! 😊 Fue un placer ayudarte. ¡Vuelve pronto!"
+  - text: "¡Nos vemos! 🌟 Gracias por tu tiempo y vuelve cuando gustes."
   
   utter_default:
-  - text: "Lo siento, no entendí bien. ¿Podrías reformular tu pregunta?"
+  - text: "🤔 Lo siento, no entendí bien tu mensaje. ¿Podrías reformularlo?"
+  - text: "😅 No estoy seguro de qué quieres decir. ¿Puedes ser más específico?"
+  - text: "🧐 Perdona, no logré entender. ¿Podrías explicarme de otra manera?"
   
   utter_fuera_de_contexto:
-  - text: "Soy un asistente de ventas. ¿Te puedo ayudar con información sobre nuestros productos?"
+  - text: "🛍️ Soy un asistente de ventas especializado en ropa. ¿Te puedo ayudar con información sobre nuestros productos?"
+  - text: "👕 Mi especialidad es ayudarte con nuestro catálogo de productos. ¿Qué te interesa conocer?"
+  - text: "🏪 Estoy aquí para ayudarte con compras y consultas sobre nuestra tienda. ¿En qué puedo asistirte?"
+  
+  utter_confirmar_pedido:
+  - text: "✅ ¿Confirmas tu pedido? Responde 'sí' para proceder o 'no' para cancelar."
+  
+  utter_pedir_confirmacion:
+  - text: "🤝 ¿Estás de acuerdo con proceder?"
+  - text: "✅ ¿Continuamos con esto?"
   
   utter_ask_nombre_cliente:
-  - text: "¿Cuál es tu nombre completo?"
+  - text: "📝 ¿Cuál es tu nombre completo?"
+  - text: "👤 Por favor, dime tu nombre completo para el pedido."
   
   utter_ask_telefono_cliente:
-  - text: "¿Podrías proporcionarme tu número de teléfono?"
+  - text: "📞 ¿Podrías proporcionarme tu número de teléfono?"
+  - text: "📱 Necesito tu número de teléfono para contactarte."
   
   utter_ask_direccion_cliente:
-  - text: "¿Cuál es tu dirección de entrega?"
+  - text: "📍 ¿Cuál es tu dirección de entrega?"
+  - text: "🏠 Por favor, proporciona tu dirección completa para la entrega."
+  
+  utter_pedido_cancelado:
+  - text: "❌ Pedido cancelado. ¿Hay algo más en lo que pueda ayudarte?"
+  - text: "🚫 No hay problema, tu pedido ha sido cancelado. ¿Necesitas algo más?"
+  
+  utter_agradecer:
+  - text: "¡De nada! 😊 ¿Hay algo más en lo que pueda ayudarte?"
+  - text: "¡Un placer ayudarte! 🌟 ¿Necesitas algo más?"
 
 actions:
   - action_mostrar_catalogo
   - action_consultar_precio
   - action_verificar_disponibilidad
   - action_crear_pedido
+  - action_confirmar_pedido
+  - action_guardar_datos_cliente
+  - action_consultar_pedido
+  - action_estadisticas_ventas
+  - action_log_conversacion
   - utter_saludar
   - utter_despedir
   - utter_default
   - utter_fuera_de_contexto
+  - utter_confirmar_pedido
+  - utter_pedir_confirmacion
   - utter_ask_nombre_cliente
   - utter_ask_telefono_cliente
   - utter_ask_direccion_cliente
+  - utter_pedido_cancelado
+  - utter_agradecer
 
 forms:
   form_datos_cliente:

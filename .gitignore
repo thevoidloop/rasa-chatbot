@@ -1,21 +1,34 @@
-# RASA específicos
-models/*.tar.gz
-models/*.gz
-results/
+# .gitignore para proyecto Rasa Chatbot
+
+# === ARCHIVOS DE ENTORNO ===
+.env
+.env.local
+.env.production
+
+# === MODELOS ENTRENADOS ===
+models/
+*.tar.gz
+
+# === LOGS ===
+logs/
+*.log
+rasa_core.log
+rasa_nlu.log
+
+# === BASES DE DATOS ===
 *.db
-*.db-wal
-*.db-shm
+*.sqlite
+rasa.db
+tracker.db
 
-# Entorno virtual de Python
-venv/
-env/
-.venv/
-.env/
-ENV/
-env.bak/
-venv.bak/
+# === BACKUPS ===
+backups/
+*.sql
 
-# Python
+# === DOCKER ===
+docker-compose.override.yml
+
+# === PYTHON ===
 __pycache__/
 *.py[cod]
 *$py.class
@@ -33,126 +46,65 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
+# === ENTORNOS VIRTUALES ===
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Jupyter Notebook
+# === JUPYTER NOTEBOOKS ===
 .ipynb_checkpoints
 
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# IDE
+# === VS CODE ===
 .vscode/
-.idea/
-*.swp
-*.swo
-*~
+*.code-workspace
 
-# MacOS
+# === SISTEMA OPERATIVO ===
 .DS_Store
-
-# Windows
-Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 ehthumbs.db
-Desktop.ini
+Thumbs.db
 
-# Logs de RASA
-rasa_*.log
-*.log
+# === TEMPORALES ===
+*.tmp
+*.temp
+temp/
+tmp/
 
-# Archivos temporales de RASA
-graph.html
-story_graph.dot
-story_graph.png
-
-# Archivos de configuración sensibles
-credentials.yml
-endpoints.yml
-
-# Base de datos local (si usas SQLite)
-tracker.db
-events.db
-domain.db
-
-# Archivos de backup
-*.bak
-*.backup
-
-# Certificados y llaves
+# === CERTIFICADOS Y CLAVES ===
 *.pem
 *.key
-*.crt
+*.cert
+ssl/
 
-# Archivos de entorno
-.env
-.env.local
-.env.production
+# === ARCHIVOS DE CONFIGURACIÓN ESPECÍFICOS ===
+# (Descomentar si tienes configuraciones locales)
+# config-local.yml
+# domain-local.yml
 
-# Archivos de prueba temporal
-test_*.yml
-temp_*
+# === DATOS SENSIBLES ===
+# credentials-production.yml (si tienes versión de producción separada)
+# endpoints-production.yml
 
-# Cache de RASA
+# === CACHE ===
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
 .rasa/
 
-# Archivos de Duckling (si lo usas)
-duckling-*
-
-# Node modules (si integras con Node.js)
+# === NODE.JS (si usas webchat) ===
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Archivos de datos sensibles
-data/conversations/
-data/backups/
-
-# Modelos antiguos (mantener solo el más reciente)
-models/backup/
-
-# Archivos multimedia temporales
-temp_images/
-temp_audio/
-temp_video/

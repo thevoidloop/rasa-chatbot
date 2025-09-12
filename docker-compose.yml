@@ -1,0 +1,88 @@
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: rasa_postgres
+    environment:
+      POSTGRES_DB: rasa_chatbot
+      POSTGRES_USER: rasa_user
+      POSTGRES_PASSWORD: rasa_password_2024
+      POSTGRES_HOST_AUTH_METHOD: md5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - rasa_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rasa_user -d rasa_chatbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Servidor de acciones de Rasa
+  rasa-action-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.actions
+    container_name: rasa_action_server
+    environment:
+      - DATABASE_URL=postgresql://rasa_user:rasa_password_2024@postgres:5432/rasa_chatbot
+    ports:
+      - "5055:5055"
+    networks:
+      - rasa_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./actions:/app/actions
+    restart: unless-stopped
+
+  # Servidor principal de Rasa
+  rasa-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rasa_server
+    environment:
+      - DATABASE_URL=postgresql://rasa_user:rasa_password_2024@postgres:5432/rasa_chatbot
+    ports:
+      - "5005:5005"
+    networks:
+      - rasa_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rasa-action-server:
+        condition: service_started
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    restart: unless-stopped
+    command: ["run", "--enable-api", "--cors", "*", "--endpoints", "endpoints.yml", "--debug"]
+
+  # Interfaz web (comentado - activar cuando esté listo)
+  # webchat:
+  #   image: nginx:alpine
+  #   container_name: rasa_webchat
+  #   ports:
+  #     - "8080:80"
+  #   networks:
+  #     - rasa_network
+  #   volumes:
+  #     - ./webchat:/usr/share/nginx/html:ro
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - rasa-server
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  rasa_network:
+    driver: bridge

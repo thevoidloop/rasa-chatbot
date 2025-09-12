@@ -1,0 +1,52 @@
+# Dockerfile.actions - Servidor de Acciones para Rasa
+FROM rasa/rasa-sdk:3.6.2
+
+# Cambiar a usuario root para instalar dependencias
+USER root
+
+# Instalar dependencias del sistema para PostgreSQL
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    build-essential \
+    libpq-dev \
+    python3-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Actualizar pip
+RUN pip install --upgrade pip
+
+# Instalar dependencias de Python para BD y otras utilidades
+RUN pip install --no-cache-dir \
+    psycopg2-binary==2.9.7 \
+    python-dotenv==1.0.0 \
+    requests==2.31.0 \
+    pandas==2.0.3
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar archivo de requirements si existe
+COPY requirements.txt* ./
+
+# Instalar requirements adicionales (sin conflictos)
+RUN if [ -f requirements.txt ]; then \
+    pip install --no-cache-dir -r requirements.txt --no-deps || \
+    echo "Saltando requirements con conflictos"; \
+    fi
+
+# Copiar código de acciones
+COPY actions/ ./actions/
+
+# Cambiar permisos
+RUN chown -R 1001:1001 /app
+
+# Cambiar a usuario no-root
+USER 1001
+
+# Puerto del action server
+EXPOSE 5055
+
+# Comando por defecto
+CMD ["start", "--actions", "actions", "--debug"]
