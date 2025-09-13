@@ -23,7 +23,6 @@ tracker.db
 
 # === BACKUPS ===
 backups/
-*.sql
 
 # === DOCKER ===
 docker-compose.override.yml
