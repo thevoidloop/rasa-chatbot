@@ -3,68 +3,93 @@ version: "3.1"
 nlu:
 - intent: saludar
   examples: |
-    - hola
-    - buenos días
+    - buenas noches
     - buenas tardes
-    - qué tal
+    - buenos días
+    - hola
     - saludos
+    - buenas
+    - qué tal
     - hey
-    - hola qué tal
+
+- intent: solicitar_realizar_pedido
+  examples: |
+    - quisiera realizar un pedido
+    - quiero hacer un pedido
+    - me gustaría pedir
+    - necesito hacer una compra
+    - quiero comprar
+    - deseo hacer un pedido
+    - me puede tomar un pedido
+    - quisiera ordenar
+
+- intent: especificar_producto
+  examples: |
+    - [1](cantidad) [vestido](producto) [rosada](color)
+    - [1](cantidad) [camisa](producto) [rosada](color)
+    - [1](cantidad) [pantalón](producto)
+    - [3](cantidad) [blusa](producto) [azul](color)
+    - quiero [2](cantidad) [vestidos](producto) [negros](color)
+    - necesito [1](cantidad) [pantalón](producto) [café](color)
+    - [5](cantidad) [camisas](producto) [blancas](color)
+    - me da [1](cantidad) [blusa](producto) [roja](color)
+    - [2](cantidad) [faldas](producto) [azules](color)
+    - [1](cantidad) [suéter](producto) [gris](color)
+
+- intent: consultar_disponibilidad
+  examples: |
+    - tendrá [calcetas](producto) disponibles
+    - tiene [alfombras](producto) disponibles
+    - hay [vestidos](producto) en stock
+    - tienen [camisas](producto) disponibles
+    - está disponible [pantalón](producto)
+    - hay [blusas](producto) en inventario
+    - tienen [calcetines](producto)
+    - disponibilidad de [suéteres](producto)
+    - hay stock de [faldas](producto)
+    - tienen [vestidos](producto) [rojos](color)
+
+- intent: confirmar_pedido
+  examples: |
+    - sí está bien
+    - está bien
+    - perfecto
+    - de acuerdo
+    - sí acepto
+    - correcto
+    - está perfecto
+    - ok
+    - sí confirmo
+    - acepto el pedido
+
+- intent: solicitar_informacion_datos
+  examples: |
+    - qué datos le envío
+    - qué información necesita
+    - qué datos requiere
+    - qué necesita para confirmar
+    - qué datos debo proporcionar
+    - qué información le paso
+    - qué datos me pide
+
+- intent: proporcionar_datos_cliente
+  examples: |
+    - [Elizabeth Barahona](nombre_cliente)
+    - mi nombre es [María López](nombre_cliente)
+    - [Juan Pérez](nombre_cliente), teléfono [12345678](telefono_cliente)
+    - [Ana García](nombre_cliente), [Aldea San ixtan Jalpatagua Jutiapa](direccion_completa)
+    - [Carlos Mendoza](nombre_cliente), dirección [zona 1 ciudad](direccion_completa), teléfono [87654321](telefono_cliente)
 
 - intent: despedir
   examples: |
     - adiós
     - hasta luego
     - nos vemos
-    - que tengas buen día
-    - chao
+    - que tenga buen día
+    - gracias y adiós
+    - hasta la próxima
     - bye
-
-- intent: consultar_catalogo
-  examples: |
-    - quiero ver el catálogo
-    - muéstrame los productos
-    - qué productos tienen
-    - ver catálogo
-    - productos disponibles
-    - qué venden
-    - enséñame lo que venden
-    - qué hay disponible
-
-- intent: consultar_precio
-  examples: |
-    - cuánto cuesta la [camisa](producto)
-    - precio de [camisa](producto)
-    - valor de la [falda](producto)
-    - qué precio tiene el [pantalón](producto)
-    - cuánto vale la [blusa](producto)
-    - precio del [vestido](producto)
-    - cuánto cuesta el [jean](producto)
-    - valor del [suéter](producto)
-    - precios de [camisas](producto)
-
-- intent: hacer_pedido
-  examples: |
-    - quiero comprar [5](cantidad) [camisas](producto)
-    - necesito [2](cantidad) [pantalones](producto)
-    - pedido de [10](cantidad) [blusas](producto)
-    - comprar [1](cantidad) [falda](producto)
-    - quiero [3](cantidad) [vestidos](producto)
-    - necesito [2](cantidad) [jeans](producto) talla [M](talla)
-    - comprar [1](cantidad) [suéter](producto) color [rojo](color)
-    - quiero una [camisa](producto) talla [L](talla) color [azul](color)
-
-- intent: consultar_disponibilidad
-  examples: |
-    - tienen [camisas](producto) disponibles
-    - hay stock de [pantalones](producto)
-    - disponibilidad de [blusas](producto)
-    - está disponible la [falda](producto)
-    - tienen [vestidos](producto) en stock
-    - hay [jeans](producto) disponibles
-    - stock de [suéteres](producto)
-    - tienen [camisas](producto) talla [M](talla)
-    - hay [pantalones](producto) color [negro](color)
+    - chao
 
 - intent: afirmar
   examples: |
@@ -76,6 +101,7 @@ nlu:
     - de acuerdo
     - ok
     - está bien
+    - sí por favor
 
 - intent: negar
   examples: |
@@ -86,6 +112,37 @@ nlu:
     - no quiero
     - cancelar
     - no me interesa
+    - no acepto
+
+- intent: consultar_precio
+  examples: |
+    - cuánto cuesta el [vestido](producto)
+    - precio de [camisa](producto)
+    - valor de la [blusa](producto)
+    - qué precio tiene el [pantalón](producto)
+    - cuánto vale la [falda](producto)
+    - precios de [vestidos](producto)
+    - cuánto me costaría
+    - me puede dar el precio
+
+- intent: modificar_pedido
+  examples: |
+    - quiero cambiar algo del pedido
+    - puedo modificar mi pedido
+    - quiero agregar algo más
+    - necesito quitar algo
+    - cambiar la cantidad
+    - modificar el pedido
+    - alterar mi orden
+
+- intent: cancelar_pedido
+  examples: |
+    - cancelar el pedido
+    - no quiero el pedido
+    - anular la orden
+    - mejor no compro
+    - cancelo todo
+    - no me interesa ya
 
 - intent: out_of_scope
   examples: |
@@ -96,22 +153,60 @@ nlu:
     - información personal tuya
     - quién eres
     - qué edad tienes
-    - dónde vives
-    - cuál es tu nombre
-    - hablas otros idiomas
+    - dónde están ubicados
+    - horarios de atención
 
 - lookup: producto
   examples: |
+    - vestido
     - camisa
     - pantalón
-    - falda
     - blusa
-    - vestido
-    - jean
+    - falda
     - suéter
     - playera
     - shorts
     - chaqueta
+    - jean
+    - calcetas
+    - calcetines
+    - alfombras
+    - zapatos
+
+- lookup: color
+  examples: |
+    - rosada
+    - azul
+    - rojo
+    - negro
+    - blanco
+    - amarillo
+    - verde
+    - morado
+    - gris
+    - naranja
+    - café
+    - beige
+    - rosa
+    - celeste
+
+- lookup: cantidad
+  examples: |
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - uno
+    - dos
+    - tres
+    - cuatro
+    - cinco
 
 - lookup: talla
   examples: |
@@ -126,18 +221,3 @@ nlu:
     - grande
     - extra grande
     - extra pequeña
-
-- lookup: color
-  examples: |
-    - rojo
-    - azul
-    - verde
-    - negro
-    - blanco
-    - amarillo
-    - rosa
-    - morado
-    - gris
-    - naranja
-    - café
-    - beige
