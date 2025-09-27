@@ -3,30 +3,28 @@ version: "3.1"
 intents:
   - saludar
   - despedir
-  - solicitar_realizar_pedido
-  - especificar_producto
-  - consultar_disponibilidad
+  - consultar_catalogo
+  - consultar_catalogo_categoria
   - consultar_precio
-  - confirmar_pedido
-  - solicitar_informacion_datos
-  - proporcionar_datos_cliente
+  - hacer_pedido
+  - consultar_disponibilidad
   - afirmar
   - negar
+  - agradecer
   - out_of_scope
-  - consultar_catalogo
-  - modificar_pedido
-  - cancelar_pedido
+  - proporcionar_telefono
+  - proporcionar_nombre
+  - proporcionar_direccion
 
 entities:
   - producto
-  - color
+  - categoria
   - cantidad
   - talla
-  - nombre_cliente
-  - direccion_completa
-  - telefono_cliente
-  - departamento
-  - municipio
+  - color
+  - telefono
+  - nombre
+  - direccion
 
 slots:
   producto_seleccionado:
@@ -36,12 +34,12 @@ slots:
     - type: from_entity
       entity: producto
   
-  color_seleccionado:
+  categoria_seleccionada:
     type: text
-    influence_conversation: false
+    influence_conversation: true
     mappings:
     - type: from_entity
-      entity: color
+      entity: categoria
   
   cantidad:
     type: float
@@ -57,13 +55,19 @@ slots:
     mappings:
     - type: custom
     
-  productos_carrito:
-    type: list
-    influence_conversation: true
+  pedido_producto_id:
+    type: float
+    influence_conversation: false
     mappings:
     - type: custom
     
-  total_estimado:
+  pedido_precio_unitario:
+    type: float
+    influence_conversation: false
+    mappings:
+    - type: custom
+    
+  pedido_total:
     type: float
     influence_conversation: false
     mappings:
@@ -79,7 +83,7 @@ slots:
       - active_loop: form_datos_cliente
         requested_slot: nombre_cliente
     - type: from_entity
-      entity: nombre_cliente
+      entity: nombre
   
   telefono_cliente:
     type: text
@@ -90,80 +94,116 @@ slots:
       - active_loop: form_datos_cliente
         requested_slot: telefono_cliente
     - type: from_entity
-      entity: telefono_cliente
+      entity: telefono
   
-  direccion_completa:
+  direccion_cliente:
     type: text
     influence_conversation: false
     mappings:
     - type: from_text
       conditions:
       - active_loop: form_datos_cliente
-        requested_slot: direccion_completa
+        requested_slot: direccion_cliente
     - type: from_entity
-      entity: direccion_completa
+      entity: direccion
 
 responses:
   utter_saludar:
-  - text: "¡Buenas tardes! 😊 Bienvenida a China Expres. Con mucho gusto le ayudo con su pedido. ¿Qué productos le interesan hoy?"
-  - text: "¡Hola! 👋 Gracias por contactar China Expres. Estoy aquí para ayudarle con su pedido. ¿Qué necesita?"
-  - text: "¡Buenas! 🌟 Es un placer atenderle en China Expres. ¿En qué puedo ayudarle con su compra?"
+  - text: "¡Hola! 👋 Bienvenido/a a nuestra tienda de ropa. ¿Te interesa conocer nuestro catálogo de productos?"
+  - text: "¡Buenos días! 🌟 ¿Qué tipo de ropa buscas hoy? Puedo mostrarte nuestro catálogo completo."
+  - text: "¡Hola! 😊 Tenemos excelentes productos disponibles. ¿Te gustaría ver nuestro catálogo?"
+  - text: "¡Bienvenido/a! 🛍️ Estoy aquí para ayudarte con nuestros productos. ¿Quieres ver lo que tenemos disponible?"
   
   utter_despedir:
-  - text: "¡Muchas gracias por su compra! 😊 Su pedido será procesado pronto. ¡Que tenga excelente día!"
-  - text: "¡Hasta luego! 👋 Gracias por confiar en China Expres. ¡Vuelva pronto!"
+  - text: "¡Hasta luego! 👋 Que tengas un excelente día. Gracias por visitarnos. ¡Vuelve pronto!"
+  - text: "¡Adiós! 😊 Fue un placer ayudarte. Espero verte de nuevo muy pronto."
+  - text: "¡Nos vemos! 🌟 Gracias por tu tiempo. Cualquier consulta, estoy aquí para ayudarte."
   
-  utter_confirmar_disponibilidad:
-  - text: "Perfecto, déjeme confirmar la disponibilidad de sus productos..."
-  - text: "Excelente selección, verifico disponibilidad y le confirmo en un momento..."
-  
-  utter_no_disponible:
-  - text: "Disculpe, actualmente no tenemos {producto} disponible en inventario."
-  - text: "Lo siento, en este momento no contamos con {producto} en stock."
-  
-  utter_sugerir_alternativa:
-  - text: "Como alternativa, le puedo ofrecer productos similares que sí tenemos disponibles. ¿Le interesa conocerlos?"
-  
-  utter_pedido_listo:
-  - text: "Su pedido está listo. Le envío la cotización con el detalle y total."
-  
-  utter_solicitar_datos:
-  - text: "Para confirmar su pedido necesito algunos datos:\n📋 Nombre completo de quien recibe\n📍 Dirección exacta (departamento, municipio, dirección)\n📞 Número de teléfono"
-  
-  utter_confirmar_pedido_final:
-  - text: "¡Perfecto! ✅ Su pedido ha sido confirmado con los siguientes datos:\n\n👤 **{nombre_cliente}**\n📍 **{direccion_completa}**\n📞 **{telefono_cliente}**\n\nProcederemos con el envío. ¡Gracias por su compra! 🎉"
+  utter_agradecer:
+  - text: "¡De nada! 😊 ¿Te gustaría ver algún producto en particular o tienes alguna otra consulta?"
+  - text: "¡Un placer ayudarte! 🌟 ¿Hay algo más que te interese conocer de nuestro catálogo?"
+  - text: "¡Para eso estoy aquí! 🛍️ ¿Te interesa información sobre precios o disponibilidad?"
   
   utter_default:
-  - text: "Disculpe, no entendí bien su mensaje. ¿Podría reformularlo? Estoy aquí para ayudarle con su pedido."
+  - text: "🤔 Lo siento, no entendí bien tu mensaje. ¿Podrías reformularlo? Si buscas productos, puedo mostrarte nuestro catálogo."
+  - text: "😅 No estoy seguro de qué quieres decir. ¿Te interesa ver nuestros productos disponibles?"
+  - text: "🧐 Perdona, no logré entender. ¿Puedes ser más específico? ¿Buscas algún tipo de ropa en particular?"
   
   utter_fuera_de_contexto:
-  - text: "Soy su asistente de ventas de China Expres. ¿Le puedo ayudar con algún producto de nuestro catálogo?"
+  - text: "🛍️ Soy un asistente de ventas especializado en ropa. ¿Te puedo mostrar nuestro catálogo de productos?"
+  - text: "👕 Mi especialidad es ayudarte con nuestros productos de ropa. ¿Qué tipo de prenda buscas?"
+  - text: "🏪 Estoy aquí para ayudarte con compras de ropa. ¿Te interesa ver lo que tenemos disponible?"
+  
+  # Respuestas para el flujo de catálogo
+  utter_catalogo_intro:
+  - text: "🛍️ ¡Perfecto! Te voy a mostrar nuestro catálogo actualizado con todos los productos disponibles:"
+  - text: "👕 ¡Excelente elección! Aquí tienes nuestro catálogo completo de productos en stock:"
+  - text: "🌟 ¡Me encanta ayudarte! Estos son todos los productos que tenemos disponibles:"
+  
+  utter_catalogo_vacio:
+  - text: "😔 Lo siento, no tenemos productos disponibles en este momento. Te notificaremos cuando tengamos nuevos productos."
+  - text: "📦 Actualmente no hay productos en stock, pero pronto tendremos nuevas opciones. ¿Te interesa que te avise cuando lleguen?"
+  
+  utter_post_catalogo:
+  - text: "¿Qué producto te llama más la atención? Puedo darte más detalles sobre precios y disponibilidad. 😊"
+  - text: "¿Te interesa algún producto en particular? Puedo ayudarte con información específica. 🛍️"
+  - text: "¡Hay muchas opciones geniales! ¿Sobre cuál te gustaría saber más detalles? 👕"
+  
+  utter_confirmar_pedido:
+  - text: "✅ ¿Confirmas tu pedido? Responde 'sí' para proceder o 'no' para cancelar."
+  
+  utter_pedir_confirmacion:
+  - text: "🤝 ¿Estás de acuerdo con proceder?"
+  - text: "✅ ¿Continuamos con esto?"
+  
+  utter_ask_nombre_cliente:
+  - text: "📝 ¿Cuál es tu nombre completo?"
+  - text: "👤 Por favor, dime tu nombre completo para el pedido."
+  
+  utter_ask_telefono_cliente:
+  - text: "📞 ¿Podrías proporcionarme tu número de teléfono?"
+  - text: "📱 Necesito tu número de teléfono para contactarte."
+  
+  utter_ask_direccion_cliente:
+  - text: "📍 ¿Cuál es tu dirección de entrega?"
+  - text: "🏠 Por favor, proporciona tu dirección completa para la entrega."
+  
+  utter_pedido_cancelado:
+  - text: "❌ Pedido cancelado. ¿Hay algo más en lo que pueda ayudarte?"
+  - text: "🚫 No hay problema, tu pedido ha sido cancelado. ¿Te interesa ver otros productos?"
 
 actions:
-  - action_agregar_producto_carrito
-  - action_verificar_disponibilidad_multiple
-  - action_generar_cotizacion
-  - action_confirmar_pedido_final
-  - action_guardar_datos_cliente
   - action_mostrar_catalogo
-  - action_sugerir_productos_similares
+  - action_mostrar_catalogo_categoria
+  - action_consultar_precio
+  - action_verificar_disponibilidad
+  - action_crear_pedido
+  - action_confirmar_pedido
+  - action_guardar_datos_cliente
+  - action_consultar_pedido
+  - action_estadisticas_ventas
+  - action_log_conversacion
   - utter_saludar
   - utter_despedir
-  - utter_confirmar_disponibilidad
-  - utter_no_disponible
-  - utter_sugerir_alternativa
-  - utter_pedido_listo
-  - utter_solicitar_datos
-  - utter_confirmar_pedido_final
+  - utter_agradecer
   - utter_default
   - utter_fuera_de_contexto
+  - utter_catalogo_intro
+  - utter_catalogo_vacio
+  - utter_post_catalogo
+  - utter_confirmar_pedido
+  - utter_pedir_confirmacion
+  - utter_ask_nombre_cliente
+  - utter_ask_telefono_cliente
+  - utter_ask_direccion_cliente
+  - utter_pedido_cancelado
 
 forms:
   form_datos_cliente:
     required_slots:
       - nombre_cliente
-      - direccion_completa
       - telefono_cliente
+      - direccion_cliente
 
 session_config:
   session_expiration_time: 60

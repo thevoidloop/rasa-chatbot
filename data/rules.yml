@@ -2,45 +2,73 @@ version: "3.1"
 
 rules:
 
-- rule: Saludar siempre al inicio
+# ===== REGLAS BÁSICAS =====
+
+- rule: Saludar siempre
   steps:
   - intent: saludar
   - action: utter_saludar
 
-- rule: Despedirse siempre al final
+- rule: Despedirse siempre
   steps:
   - intent: despedir
   - action: utter_despedir
+
+- rule: Agradecer siempre
+  steps:
+  - intent: agradecer
+  - action: utter_agradecer
 
 - rule: Respuesta a mensajes fuera de contexto
   steps:
   - intent: out_of_scope
   - action: utter_fuera_de_contexto
 
-- rule: Manejo de interrupción en formulario
-  condition:
-  - active_loop: form_datos_cliente
-  steps:
-  - intent: cancelar_pedido
-  - action: action_deactivate_loop
-  - active_loop: null
-  - action: utter_despedir
+# ===== REGLAS ESPECÍFICAS PARA CATÁLOGO =====
 
-- rule: Continuar formulario después de proporcionar datos
-  condition:
-  - active_loop: form_datos_cliente
-  steps:
-  - intent: proporcionar_datos_cliente
-  - action: form_datos_cliente
-  - active_loop: null
-  - action: action_confirmar_pedido_final
-
-- rule: Generar cotización cuando se consulta precio directamente
-  steps:
-  - intent: consultar_precio
-  - action: action_generar_cotizacion
-
-- rule: Mostrar catálogo cuando se solicita
+- rule: Mostrar catálogo completo cuando se solicite
   steps:
   - intent: consultar_catalogo
+  - action: utter_catalogo_intro
   - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
+
+- rule: Mostrar catálogo por categoría cuando se solicite
+  steps:
+  - intent: consultar_catalogo_categoria
+  - action: action_mostrar_catalogo_categoria
+
+# ===== REGLAS PARA SEGUIMIENTO POST-CATÁLOGO =====
+
+- rule: Consultar precio después de ver catálogo
+  condition:
+  - active_loop: null
+  - slot_was_set:
+    - producto_seleccionado: null
+  steps:
+  - intent: consultar_precio
+  - action: action_consultar_precio
+
+- rule: Verificar disponibilidad después de ver catálogo
+  condition:
+  - active_loop: null
+  - slot_was_set:
+    - producto_seleccionado: null
+  steps:
+  - intent: consultar_disponibilidad
+  - action: action_verificar_disponibilidad
+
+# ===== REGLAS DE FALLBACK =====
+
+- rule: Default fallback cuando no se entiende
+  steps:
+  - intent: nlu_fallback
+  - action: utter_default
+
+# ===== REGLAS PARA LOGGING =====
+
+- rule: Log todas las conversaciones
+  condition:
+  - active_loop: null
+  steps:
+  - action: action_log_conversacion

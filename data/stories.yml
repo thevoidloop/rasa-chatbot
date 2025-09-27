@@ -2,149 +2,144 @@ version: "3.1"
 
 stories:
 
-- story: flujo completo de pedido exitoso
+# ===== FLUJOS DE CATÁLOGO PRINCIPAL =====
+
+- story: saludo y consulta catálogo directo
   steps:
   - intent: saludar
   - action: utter_saludar
-  - intent: solicitar_realizar_pedido
-  - action: utter_confirmar_disponibilidad
-  - intent: especificar_producto
-    entities:
-    - producto: "vestido"
-    - cantidad: 1
-    - color: "rosada"
-  - slot_was_set:
-    - producto_seleccionado: "vestido"
-    - cantidad: 1
-    - color_seleccionado: "rosada"
-  - action: action_agregar_producto_carrito
-  - intent: especificar_producto
-    entities:
-    - producto: "camisa"
-    - cantidad: 1
-    - color: "rosada"
-  - action: action_agregar_producto_carrito
-  - intent: especificar_producto
-    entities:
-    - producto: "pantalón"
-    - cantidad: 1
-  - action: action_agregar_producto_carrito
-  - intent: especificar_producto
-    entities:
-    - producto: "blusa"
-    - cantidad: 3
-    - color: "azul"
-  - action: action_agregar_producto_carrito
-  - intent: consultar_disponibilidad
-    entities:
-    - producto: "calcetas"
-  - action: action_verificar_disponibilidad_multiple
-  - action: utter_no_disponible
-  - intent: consultar_disponibilidad
-    entities:
-    - producto: "alfombras"
-  - action: utter_no_disponible
-  - action: action_generar_cotizacion
-  - intent: confirmar_pedido
-  - action: utter_solicitar_datos
-  - intent: solicitar_informacion_datos
-  - action: utter_solicitar_datos
-  - intent: proporcionar_datos_cliente
-    entities:
-    - nombre_cliente: "Elizabeth Barahona"
-    - direccion_completa: "Aldea San ixtan Jalpatagua Jutiapa calle principal frente a ferretería la piocha"
-    - telefono_cliente: "47855098"
-  - slot_was_set:
-    - nombre_cliente: "Elizabeth Barahona"
-    - direccion_completa: "Aldea San ixtan Jalpatagua Jutiapa calle principal frente a ferretería la piocha"
-    - telefono_cliente: "47855098"
-  - action: action_confirmar_pedido_final
-  - action: utter_confirmar_pedido_final
-
-- story: consulta de disponibilidad sin stock
-  steps:
-  - intent: consultar_disponibilidad
-    entities:
-    - producto: "calcetas"
-  - action: action_verificar_disponibilidad_multiple
-  - action: utter_no_disponible
-  - action: utter_sugerir_alternativa
-  - intent: afirmar
-  - action: action_sugerir_productos_similares
-
-- story: modificación de pedido
-  steps:
-  - intent: especificar_producto
-    entities:
-    - producto: "vestido"
-    - cantidad: 2
-  - action: action_agregar_producto_carrito
-  - intent: modificar_pedido
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
   - action: action_mostrar_catalogo
-  - intent: especificar_producto
-    entities:
-    - producto: "camisa"
-    - cantidad: 1
-  - action: action_agregar_producto_carrito
+  - action: utter_post_catalogo
 
-- story: cancelación de pedido
+- story: consulta catálogo directo sin saludo
   steps:
-  - intent: especificar_producto
-    entities:
-    - producto: "vestido"
-  - action: action_agregar_producto_carrito
-  - intent: cancelar_pedido
-  - action: utter_despedir
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
+  - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
 
-- story: saludo y consulta directa de precios
+- story: consulta catálogo luego precio específico
   steps:
-  - intent: saludar
-  - action: utter_saludar
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
+  - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
   - intent: consultar_precio
     entities:
+    - producto: "camisa"
+  - slot_was_set:
+    - producto_seleccionado: "camisa"
+  - action: action_consultar_precio
+
+- story: consulta catálogo por categoría
+  steps:
+  - intent: consultar_catalogo_categoria
+    entities:
+    - categoria: "camisas"
+  - slot_was_set:
+    - categoria_seleccionada: "camisas"
+  - action: action_mostrar_catalogo_categoria
+
+# ===== FLUJOS CON SEGUIMIENTO =====
+
+- story: catálogo y pedido directo
+  steps:
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
+  - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
+  - intent: hacer_pedido
+    entities:
+    - cantidad: 2
+    - producto: "pantalón"
+  - slot_was_set:
+    - cantidad: 2
+    - producto_seleccionado: "pantalón"
+  - action: action_crear_pedido
+
+- story: catálogo con consulta disponibilidad
+  steps:
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
+  - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
+  - intent: consultar_disponibilidad
+    entities:
     - producto: "vestido"
   - slot_was_set:
     - producto_seleccionado: "vestido"
-  - action: action_generar_cotizacion
+  - action: action_verificar_disponibilidad
 
-- story: cliente proporciona datos paso a paso
-  steps:
-  - intent: proporcionar_datos_cliente
-    entities:
-    - nombre_cliente: "María López"
-  - slot_was_set:
-    - nombre_cliente: "María López"
-  - action: utter_solicitar_datos
-  - intent: proporcionar_datos_cliente
-    entities:
-    - direccion_completa: "Guatemala, Mixco, Zona 1"
-  - slot_was_set:
-    - direccion_completa: "Guatemala, Mixco, Zona 1"
-  - action: utter_solicitar_datos
-  - intent: proporcionar_datos_cliente
-    entities:
-    - telefono_cliente: "12345678"
-  - slot_was_set:
-    - telefono_cliente: "12345678"
-  - action: action_confirmar_pedido_final
+# ===== FLUJOS CON AGRADECIMIENTOS =====
 
-- story: cliente rechaza cotización
+- story: catálogo con agradecimiento
   steps:
-  - intent: especificar_producto
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
+  - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
+  - intent: agradecer
+  - action: utter_agradecer
+
+# ===== FLUJOS COMPLETOS =====
+
+- story: flujo completo saludo a despedida
+  steps:
+  - intent: saludar
+  - action: utter_saludar
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
+  - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
+  - intent: consultar_precio
     entities:
-    - producto: "vestido"
-  - action: action_agregar_producto_carrito
-  - action: action_generar_cotizacion
-  - intent: negar
-  - action: utter_sugerir_alternativa
-  - intent: negar
+    - producto: "blusa"
+  - slot_was_set:
+    - producto_seleccionado: "blusa"
+  - action: action_consultar_precio
+  - intent: agradecer
+  - action: utter_agradecer
+  - intent: despedir
   - action: utter_despedir
 
-- story: manejo de mensaje fuera de contexto
+# ===== FLUJOS DE ERROR O CASOS ESPECIALES =====
+
+- story: mensaje fuera de contexto
   steps:
   - intent: out_of_scope
   - action: utter_fuera_de_contexto
-  - intent: especificar_producto
+
+- story: consulta catálogo después de out_of_scope
+  steps:
+  - intent: out_of_scope
+  - action: utter_fuera_de_contexto
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
+  - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
+
+# ===== FLUJOS ALTERNATIVOS =====
+
+- story: múltiples consultas de catálogo
+  steps:
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
+  - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
+  - intent: consultar_catalogo_categoria
     entities:
-    - producto: "camisa"
-  - action: action_agregar_producto_carrito
+    - categoria: "pantalones"
+  - slot_was_set:
+    - categoria_seleccionada: "pantalones"
+  - action: action_mostrar_catalogo_categoria
+
+- story: negativa después de ver catálogo
+  steps:
+  - intent: consultar_catalogo
+  - action: utter_catalogo_intro
+  - action: action_mostrar_catalogo
+  - action: utter_post_catalogo
+  - intent: negar
+  - action: utter_despedir
