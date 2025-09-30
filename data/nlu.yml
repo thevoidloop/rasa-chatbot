@@ -13,8 +13,6 @@ nlu:
     - hola qué tal
     - buenas
     - buen día
-    - hola buenos días
-    - hola buenas tardes
 
 - intent: despedir
   examples: |
@@ -25,13 +23,9 @@ nlu:
     - chao
     - bye
     - hasta mañana
-    - que tengas buena tarde
-    - nos hablamos luego
-    - hasta pronto
     - gracias y adiós
     - me voy
 
-# ===== CONSULTA DE CATÁLOGO - OPTIMIZADO =====
 - intent: consultar_catalogo
   examples: |
     - quiero ver el catálogo
@@ -51,131 +45,26 @@ nlu:
     - me interesa ver sus productos
     - quisiera conocer los productos
     - pueden mostrarme lo que tienen
-    - qué tipo de ropa venden
-    - ver la mercancía
-    - mostrar inventario
-    - productos en stock
-    - qué hay en venta
-    - ver ofertas
-    - mostrar todo lo que tienen
-    - quiero comprar algo
-    - necesito ver opciones
-    - busco ropa
-    - qué ropa tienen
-    - ver prendas disponibles
 
-- intent: consultar_catalogo_categoria
+- intent: agregar_al_carrito
   examples: |
-    - qué [camisas](categoria) tienen
-    - muéstrame [pantalones](categoria)
-    - ver [vestidos](categoria) disponibles
-    - quiero ver [blusas](categoria)
-    - productos de [jeans](categoria)
-    - mostrar [suéteres](categoria)
-    - qué [ropa de mujer](categoria) tienen
-    - ver [ropa de hombre](categoria)
-    - [camisetas](categoria) disponibles
-    - mostrar [playeras](categoria)
-    - qué [chaquetas](categoria) venden
-    - ver [shorts](categoria)
+    - agregar al carrito [2](cantidad) [camisas](producto)
+    - añadir [1](cantidad) [pantalón](producto) al carrito
+    - quiero agregar [3](cantidad) [blusas](producto)
+    - agregar [camisa](producto) al carrito
+    - añade [5](cantidad) [vestidos](producto) al carrito
+    - pon [10](cantidad) [jeans](producto) en el carrito
+    - meter al carrito [2](cantidad) [suéteres](producto)
+    - agregar esta [blusa](producto)
+    - añadir al carrito
+    - quiero este [pantalón](producto) en mi carrito
+    - agrégalo al carrito
+    - incluir en el carrito [1](cantidad) [falda](producto)
+    - añadir [vestido](producto)
+    - agregar [12](cantidad) [playeras](producto) al carrito
+    - me llevo [6](cantidad) [shorts](producto)
 
-- intent: consultar_precio
-  examples: |
-    - cuánto cuesta la [camisa](producto)
-    - precio de [camisa](producto)
-    - valor de la [falda](producto)
-    - qué precio tiene el [pantalón](producto)
-    - cuánto vale la [blusa](producto)
-    - precio del [vestido](producto)
-    - cuánto cuesta el [jean](producto)
-    - valor del [suéter](producto)
-    - precios de [camisas](producto)
-    - cuánto sale [pantalón](producto)
-    - qué valor tienen las [blusas](producto)
-    - precio por [vestido](producto)
-
-- intent: consultar_disponibilidad
-  examples: |
-    - tienen [camisas](producto) disponibles
-    - hay stock de [pantalones](producto)
-    - disponibilidad de [blusas](producto)
-    - está disponible la [falda](producto)
-    - tienen [vestidos](producto) en stock
-    - hay [jeans](producto) disponibles
-    - stock de [suéteres](producto)
-    - tienen [camisas](producto) talla [M](talla)
-    - hay [pantalones](producto) color [negro](color)
-    - quedan [blusas](producto)
-    - tienen existencias de [vestidos](producto)
-
-- intent: hacer_pedido
-  examples: |
-    - quiero comprar [5](cantidad) [camisas](producto)
-    - necesito [2](cantidad) [pantalones](producto)
-    - pedido de [10](cantidad) [blusas](producto)
-    - comprar [1](cantidad) [falda](producto)
-    - quiero [3](cantidad) [vestidos](producto)
-    - necesito [2](cantidad) [jeans](producto) talla [M](talla)
-    - comprar [1](cantidad) [suéter](producto) color [rojo](color)
-    - quiero una [camisa](producto) talla [L](talla) color [azul](color)
-    - me llevo [6](cantidad) [playeras](producto)
-    - solicito [12](cantidad) [camisetas](producto)
-
-- intent: afirmar
-  examples: |
-    - sí
-    - correcto
-    - exacto
-    - así es
-    - perfecto
-    - de acuerdo
-    - ok
-    - está bien
-    - claro
-    - por supuesto
-    - definitivamente
-    - efectivamente
-
-- intent: negar
-  examples: |
-    - no
-    - no gracias
-    - incorrecto
-    - no es así
-    - no quiero
-    - cancelar
-    - no me interesa
-    - mejor no
-    - paso
-    - no por ahora
-
-- intent: agradecer
-  examples: |
-    - gracias
-    - muchas gracias
-    - te agradezco
-    - muy amable
-    - perfecto gracias
-    - excelente gracias
-    - gracias por la información
-    - se lo agradezco
-
-- intent: out_of_scope
-  examples: |
-    - cómo está el clima
-    - qué hora es
-    - cuéntame un chiste
-    - ayuda con matemáticas
-    - información personal tuya
-    - quién eres
-    - qué edad tienes
-    - dónde vives
-    - cuál es tu nombre
-    - hablas otros idiomas
-    - dónde están ubicados
-    - cómo llego a la tienda
-
-# ===== LOOKUPS =====
+# Lookups para entidades
 - lookup: producto
   examples: |
     - camisa
@@ -187,59 +76,4 @@ nlu:
     - suéter
     - playera
     - shorts
-    - chaqueta
     - camiseta
-    - polo
-    - sudadera
-    - abrigo
-    - saco
-
-- lookup: categoria
-  examples: |
-    - camisas
-    - pantalones
-    - blusas
-    - vestidos
-    - jeans
-    - suéteres
-    - playeras
-    - shorts
-    - chaquetas
-    - ropa de mujer
-    - ropa de hombre
-    - ropa casual
-    - ropa formal
-
-- lookup: talla
-  examples: |
-    - XS
-    - S
-    - M
-    - L
-    - XL
-    - XXL
-    - pequeña
-    - mediana
-    - grande
-    - extra grande
-    - extra pequeña
-    - chica
-    - mediano
-
-- lookup: color
-  examples: |
-    - rojo
-    - azul
-    - verde
-    - negro
-    - blanco
-    - amarillo
-    - rosa
-    - morado
-    - gris
-    - naranja
-    - café
-    - beige
-    - celeste
-    - marino
-    - vino

@@ -66,6 +66,10 @@ services:
     volumes:
       - ./models:/app/models
       - ./data:/app/data
+      - ./domain.yml:/app/domain.yml
+      - ./config.yml:/app/config.yml
+      - ./endpoints.yml:/app/endpoints.yml
+      - ./credentials.yml:/app/credentials.yml
     restart: unless-stopped
     command: ["run", "--enable-api", "--cors", "*", "--endpoints", "endpoints.yml", "--debug"]
 

@@ -2,8 +2,7 @@ version: "3.1"
 
 rules:
 
-# ===== REGLAS BÁSICAS =====
-
+# Reglas básicas de cortesía
 - rule: Saludar siempre
   steps:
   - intent: saludar
@@ -13,62 +12,3 @@ rules:
   steps:
   - intent: despedir
   - action: utter_despedir
-
-- rule: Agradecer siempre
-  steps:
-  - intent: agradecer
-  - action: utter_agradecer
-
-- rule: Respuesta a mensajes fuera de contexto
-  steps:
-  - intent: out_of_scope
-  - action: utter_fuera_de_contexto
-
-# ===== REGLAS ESPECÍFICAS PARA CATÁLOGO =====
-
-- rule: Mostrar catálogo completo cuando se solicite
-  steps:
-  - intent: consultar_catalogo
-  - action: utter_catalogo_intro
-  - action: action_mostrar_catalogo
-  - action: utter_post_catalogo
-
-- rule: Mostrar catálogo por categoría cuando se solicite
-  steps:
-  - intent: consultar_catalogo_categoria
-  - action: action_mostrar_catalogo_categoria
-
-# ===== REGLAS PARA SEGUIMIENTO POST-CATÁLOGO =====
-
-- rule: Consultar precio después de ver catálogo
-  condition:
-  - active_loop: null
-  - slot_was_set:
-    - producto_seleccionado: null
-  steps:
-  - intent: consultar_precio
-  - action: action_consultar_precio
-
-- rule: Verificar disponibilidad después de ver catálogo
-  condition:
-  - active_loop: null
-  - slot_was_set:
-    - producto_seleccionado: null
-  steps:
-  - intent: consultar_disponibilidad
-  - action: action_verificar_disponibilidad
-
-# ===== REGLAS DE FALLBACK =====
-
-- rule: Default fallback cuando no se entiende
-  steps:
-  - intent: nlu_fallback
-  - action: utter_default
-
-# ===== REGLAS PARA LOGGING =====
-
-- rule: Log todas las conversaciones
-  condition:
-  - active_loop: null
-  steps:
-  - action: action_log_conversacion

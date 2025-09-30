@@ -26,8 +26,8 @@ RUN pip install --no-cache-dir \
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Crear directorio models con permisos correctos
-RUN mkdir -p /app/models && chmod 777 /app/models
+# Crear directorios con permisos correctos para volúmenes
+RUN mkdir -p /app/models /app/data && chmod 777 /app/models /app/data
 
 # Copiar archivo de requirements primero (para cache de Docker)
 COPY requirements.txt* ./
@@ -50,6 +50,9 @@ COPY data/ ./data/
 # Cambiar permisos y propiedad de archivos
 RUN chown -R 1001:1001 /app
 RUN chmod -R 755 /app
+
+# Dar permisos de escritura a archivos de configuración (para volúmenes)
+RUN chmod 666 /app/config.yml /app/domain.yml /app/endpoints.yml /app/credentials.yml 2>/dev/null || true
 
 # Cambiar a usuario no-root para seguridad
 USER 1001
