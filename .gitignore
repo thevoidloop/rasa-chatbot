@@ -91,6 +91,9 @@ ssl/
 # config-local.yml
 # domain-local.yml
 
+# === CLAUDE CODE ===
+CLAUDE.md
+
 # === DATOS SENSIBLES ===
 # credentials-production.yml (si tienes versión de producción separada)
 # endpoints-production.yml
