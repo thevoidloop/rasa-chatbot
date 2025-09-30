@@ -32,24 +32,26 @@ Key business logic:
 
 ### Custom Actions
 
-All custom actions are in actions/actions.py:1 and use a shared `DatabaseConnection` class (actions/actions.py:15):
+All custom actions are in actions/actions.py:1 and use a shared `DatabaseConnection` class (actions/actions.py:14):
 
-- **ActionMostrarCatalogo**: Displays full product catalog with prices, stock, sizes, colors
-- **ActionMostrarCatalogoPorCategoria**: Filters products by category using flexible search
-- **ActionConsultarPrecio**: Shows detailed pricing with savings calculations for bulk purchases
-- **ActionVerificarDisponibilidad**: Checks stock availability for requested quantities
-- **ActionLogConversacion**: Logs user interactions with intents/entities for analytics
+- **ActionMostrarCatalogo** (actions/actions.py:60): Displays full product catalog with prices, stock availability from database
+- **ActionAgregarAlCarrito** (actions/actions.py:110): Adds products to shopping cart, calculates pricing tiers (individual/wholesale/bundle), manages cart state in slots
 
 Database connection uses environment variables: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (docker-compose.yml:32-37)
 
 ### RASA Configuration
 
 - **Language**: Spanish (config.yml:1)
-- **NLU Pipeline** (config.yml:3-20): WhitespaceTokenizer, DIETClassifier (100 epochs), ResponseSelector, FallbackClassifier (0.3 threshold)
-- **Intents** (domain.yml:3-17): saludar, consultar_catalogo, consultar_precio, hacer_pedido, etc.
-- **Entities** (domain.yml:19-27): producto, categoria, cantidad, talla, color, telefono, nombre, direccion
-- **Slots** (domain.yml:29-108): Conversation slots for product selection, order data, customer information
-- **Form** (domain.yml:201-206): `form_datos_cliente` collects name, phone, address for orders
+- **NLU Pipeline** (config.yml:3-21): WhitespaceTokenizer, RegexFeaturizer, LexicalSyntacticFeaturizer, CountVectorsFeaturizer (word + char n-grams), DIETClassifier (100 epochs), EntitySynonymMapper, ResponseSelector, FallbackClassifier (0.3 threshold)
+- **Policies** (config.yml:23-36): Default policies (commented out in config, auto-configured by RASA: MemoizationPolicy, RulePolicy, UnexpecTEDIntentPolicy, TEDPolicy)
+- **Intents** (domain.yml:3-8): saludar, despedir, consultar_catalogo, agregar_al_carrito
+- **Entities** (domain.yml:9-11): producto, cantidad
+- **Slots** (domain.yml:13-45):
+  - `producto_seleccionado` (text): Tracks product user wants to add
+  - `cantidad` (float): Quantity of product
+  - `carrito_productos` (list): Full shopping cart state with product details
+  - `carrito_total` (float): Total cart value
+  - `carrito_cantidad_items` (float): Total item count in cart
 
 ## Common Commands
 
@@ -136,9 +138,11 @@ docker compose up -d
 ### Action Server Development
 
 - All actions must inherit from `rasa_sdk.Action` and implement `name()` and `run()` methods
-- Use the shared `db = DatabaseConnection()` instance (actions/actions.py:58) for queries
-- The `execute_query()` method returns `RealDictCursor` results (dict-like rows)
+- Use the shared `db = DatabaseConnection()` instance (actions/actions.py:57) for queries
+- The `execute_query()` method (actions/actions.py:35) returns `RealDictCursor` results (dict-like rows) when `fetch=True`
 - Always use parameterized queries to prevent SQL injection: `db.execute_query(query, (param1, param2), fetch=True)`
+- Return `SlotSet` events from actions to update conversation state: `return [SlotSet("slot_name", value)]`
+- Shopping cart logic: Products are stored in `carrito_productos` slot as list of dicts with product_id, quantity, unit_price, subtotal
 
 ### Training Data Guidelines
 

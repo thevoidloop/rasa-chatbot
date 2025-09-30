@@ -57,6 +57,44 @@ class DatabaseConnection:
 db = DatabaseConnection()
 
 
+def normalize_product_name(name: str) -> str:
+    """
+    Normaliza nombres de productos eliminando plurales comunes en español
+    y removiendo acentos para búsqueda flexible
+    """
+    import unicodedata
+
+    name = name.lower().strip()
+
+    # Remover acentos para búsqueda más flexible
+    name_no_accents = ''.join(
+        c for c in unicodedata.normalize('NFD', name)
+        if unicodedata.category(c) != 'Mn'
+    )
+
+    # Plurales comunes en español
+    # Reglas de pluralización en orden de prioridad
+    plural_rules = [
+        ('ces', 'z'),      # luces -> luz, peces -> pez
+        ('nes', 'n'),      # pantalones -> pantalon
+        ('ses', 's'),      # blusas -> blusa (pero esto ya está cubierto por 's')
+        ('ies', 'y'),      # No común en español pero por si acaso
+        ('as', 'a'),       # camisas -> camisa, blusas -> blusa
+        ('os', 'o'),       # pantalones -> pantalon (ya cubierto), vestidos -> vestido
+        ('es', ''),        # jeans -> jean (si termina en consonante + es)
+        ('s', ''),         # remover 's' simple al final
+    ]
+
+    # Aplicar reglas de pluralización
+    for plural_suffix, singular_suffix in plural_rules:
+        if name_no_accents.endswith(plural_suffix):
+            # Para evitar casos como "tres" -> "tre", verificar longitud mínima
+            if len(name_no_accents) > len(plural_suffix) + 1:
+                return name_no_accents[:-len(plural_suffix)] + singular_suffix
+
+    return name_no_accents
+
+
 class ActionMostrarCatalogo(Action):
     """Muestra el catálogo completo de productos disponibles"""
 
@@ -107,6 +145,66 @@ class ActionMostrarCatalogo(Action):
         return []
 
 
+class ActionRecuperarCarrito(Action):
+    """Recupera el carrito de la última sesión del cliente"""
+
+    def name(self) -> Text:
+        return "action_recuperar_carrito"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        sender_id = tracker.sender_id
+        logger.info(f"Intentando recuperar carrito para sender_id: {sender_id}")
+
+        # Buscar el último estado del carrito en la BD de eventos
+        query = """
+        SELECT data->>'value' as carrito_data
+        FROM events
+        WHERE sender_id = %s
+          AND type_name = 'slot'
+          AND data->>'name' = 'carrito_productos'
+          AND data->>'value' != 'null'
+        ORDER BY timestamp DESC
+        LIMIT 1
+        """
+
+        resultado = db.execute_query(query, (sender_id,), fetch=True)
+
+        if resultado and resultado[0]['carrito_data']:
+            import json
+            try:
+                carrito_anterior = json.loads(resultado[0]['carrito_data'])
+
+                if carrito_anterior and len(carrito_anterior) > 0:
+                    # Calcular totales del carrito recuperado
+                    total_carrito = sum(float(item['subtotal']) for item in carrito_anterior)
+                    cantidad_items = sum(int(item['quantity']) for item in carrito_anterior)
+
+                    mensaje = "🔄 **Carrito recuperado de tu última sesión:**\n\n"
+                    for item in carrito_anterior:
+                        mensaje += f"   • {item['quantity']} {item['product_name']} Q{float(item['subtotal']):.2f}\n"
+
+                    mensaje += f"\n   💵 **Total: Q{total_carrito:.2f}**\n\n"
+                    mensaje += "¿Quieres continuar con tu compra o modificar el carrito? 🛒"
+
+                    dispatcher.utter_message(text=mensaje)
+
+                    logger.info(f"Carrito recuperado: {len(carrito_anterior)} items, total: Q{total_carrito:.2f}")
+
+                    return [
+                        SlotSet("carrito_productos", carrito_anterior),
+                        SlotSet("carrito_total", total_carrito),
+                        SlotSet("carrito_cantidad_items", cantidad_items)
+                    ]
+            except Exception as e:
+                logger.error(f"Error al recuperar carrito: {e}")
+
+        logger.info("No se encontró carrito anterior para recuperar")
+        return []
+
+
 class ActionAgregarAlCarrito(Action):
     """Agrega un producto al carrito de compras"""
 
@@ -129,17 +227,31 @@ class ActionAgregarAlCarrito(Action):
         else:
             cantidad_solicitada = int(float(cantidad_solicitada))
 
-        # Buscar producto en BD
+        # Normalizar nombre de producto (manejar plurales y acentos)
+        producto_normalizado = normalize_product_name(producto)
+
+        # Buscar producto en BD con búsqueda flexible usando unaccent
         query = """
         SELECT p.id, p.name, p.code, p.individual_price, p.wholesale_price,
                p.bundle_price, p.wholesale_quantity, i.available_quantity
         FROM products p
         LEFT JOIN inventory i ON p.id = i.product_id
-        WHERE LOWER(p.name) LIKE %s AND p.active = true
+        WHERE p.active = true
+        ORDER BY
+            CASE
+                WHEN translate(LOWER(p.name), 'áéíóúñ', 'aeioun') LIKE %s THEN 1
+                WHEN LOWER(p.name) LIKE %s THEN 2
+                ELSE 3
+            END
         LIMIT 1
         """
 
-        resultado = db.execute_query(query, (f"%{producto.lower()}%",), fetch=True)
+        # Búsqueda: primero normalizada (sin acentos/plurales), luego original
+        resultado = db.execute_query(
+            query,
+            (f"%{producto_normalizado}%", f"%{producto.lower()}%"),
+            fetch=True
+        )
 
         if not resultado:
             mensaje = f"❌ No encontré '{producto}' en nuestro catálogo.\n"
@@ -157,15 +269,15 @@ class ActionAgregarAlCarrito(Action):
             dispatcher.utter_message(text=mensaje)
             return []
 
-        # Calcular precio según cantidad
+        # Calcular precio según cantidad (convertir Decimal a float)
         if cantidad_solicitada >= 12 and prod['bundle_price']:
-            precio_unitario = prod['bundle_price'] / 12
+            precio_unitario = float(prod['bundle_price']) / 12
             precio_tipo = "bundle"
         elif cantidad_solicitada >= prod['wholesale_quantity'] and prod['wholesale_price']:
-            precio_unitario = prod['wholesale_price'] / prod['wholesale_quantity']
+            precio_unitario = float(prod['wholesale_price']) / float(prod['wholesale_quantity'])
             precio_tipo = "wholesale"
         else:
-            precio_unitario = prod['individual_price']
+            precio_unitario = float(prod['individual_price'])
             precio_tipo = "individual"
 
         subtotal_item = precio_unitario * cantidad_solicitada
@@ -178,7 +290,7 @@ class ActionAgregarAlCarrito(Action):
         for item in carrito:
             if item['product_id'] == prod['id']:
                 item['quantity'] += cantidad_solicitada
-                item['subtotal'] = item['unit_price'] * item['quantity']
+                item['subtotal'] = float(item['unit_price']) * item['quantity']
                 producto_existente = True
                 break
 
@@ -194,17 +306,20 @@ class ActionAgregarAlCarrito(Action):
                 'price_type': precio_tipo
             })
 
-        # Calcular totales
-        total_carrito = sum(item['subtotal'] for item in carrito)
-        cantidad_items = sum(item['quantity'] for item in carrito)
+        # Calcular totales (convertir Decimal a float)
+        total_carrito = sum(float(item['subtotal']) for item in carrito)
+        cantidad_items = sum(int(item['quantity']) for item in carrito)
 
         mensaje = f"✅ **{cantidad_solicitada} x {prod['name']}** agregado al carrito\n\n"
         mensaje += f"💰 Precio unitario: Q{precio_unitario:.2f}\n"
         mensaje += f"💵 Subtotal: Q{subtotal_item:.2f}\n\n"
         mensaje += f"🛒 **Resumen del carrito:**\n"
-        mensaje += f"   • {len(carrito)} producto(s) diferente(s)\n"
-        mensaje += f"   • {int(cantidad_items)} unidad(es) en total\n"
-        mensaje += f"   • Total: Q{total_carrito:.2f}\n\n"
+
+        # Listar productos en el carrito
+        for item in carrito:
+            mensaje += f"   • {item['quantity']} {item['product_name']} Q{float(item['subtotal']):.2f}\n"
+
+        mensaje += f"\n   💵 **Total: Q{total_carrito:.2f}**\n\n"
         mensaje += "¿Quieres seguir comprando o ver más productos? 🛍️"
 
         dispatcher.utter_message(text=mensaje)

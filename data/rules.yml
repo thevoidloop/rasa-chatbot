@@ -12,3 +12,9 @@ rules:
   steps:
   - intent: despedir
   - action: utter_despedir
+
+# Recuperar carrito al inicio de conversación (primera interacción)
+- rule: Recuperar carrito automáticamente
+  conversation_start: true
+  steps:
+  - action: action_recuperar_carrito
