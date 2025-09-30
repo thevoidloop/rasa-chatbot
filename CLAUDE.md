@@ -32,10 +32,19 @@ Key business logic:
 
 ### Custom Actions
 
-All custom actions are in actions/actions.py:1 and use a shared `DatabaseConnection` class (actions/actions.py:14):
+Actions are organized in a modular structure under `actions/` directory. See actions/README.md for full documentation.
 
-- **ActionMostrarCatalogo** (actions/actions.py:60): Displays full product catalog with prices, stock availability from database
-- **ActionAgregarAlCarrito** (actions/actions.py:110): Adds products to shopping cart, calculates pricing tiers (individual/wholesale/bundle), manages cart state in slots
+**Module Structure:**
+- `actions/database/`: Database connection management (DatabaseConnection class) and SQL queries
+- `actions/catalog/`: Catalog-related actions (ActionMostrarCatalogo)
+- `actions/cart/`: Shopping cart actions and utilities (ActionAgregarAlCarrito, ActionRecuperarCarrito)
+- `actions/orders/`: Placeholder for future order processing actions
+- `actions/utils/`: Shared helper functions (normalize_product_name)
+
+**Key Actions:**
+- **ActionMostrarCatalogo** (actions/catalog/catalog_actions.py): Displays full product catalog with prices, stock availability
+- **ActionAgregarAlCarrito** (actions/cart/cart_actions.py): Adds products to cart, calculates pricing tiers (individual/wholesale/bundle)
+- **ActionRecuperarCarrito** (actions/cart/cart_actions.py): Recovers cart from previous session using events table
 
 Database connection uses environment variables: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (docker-compose.yml:32-37)
 
@@ -109,8 +118,11 @@ docker exec -it rasa_postgres psql -U rasa_user -d rasa_chatbot \
 ### Development Workflow
 
 ```bash
-# After modifying actions/actions.py
+# After modifying actions/ code (any module)
 docker compose restart rasa-action-server
+
+# Verify actions are registered correctly
+curl http://localhost:5055/actions
 
 # After modifying domain.yml, config.yml, or data/
 docker exec -it rasa_server rasa train
@@ -129,7 +141,11 @@ docker compose up -d
 - **data/nlu.yml**: Training examples for intent classification and entity extraction
 - **data/stories.yml:1**: Conversation flows and dialogue management patterns
 - **data/rules.yml**: Rule-based dialogue patterns (greetings, fallbacks)
-- **actions/actions.py:1**: Custom action server with database integration
+- **actions/**: Modular custom action server (see actions/README.md for details)
+  - **actions.py**: Entry point compatible with RASA
+  - **database/**: Connection management and SQL queries
+  - **catalog/**, **cart/**, **orders/**: Domain-specific action modules
+  - **utils/**: Shared helper functions
 - **endpoints.yml:1**: Configuration for action server endpoint (no tracker store - uses in-memory)
 - **init-db.sql:1**: PostgreSQL schema initialization with sample data
 
@@ -138,11 +154,14 @@ docker compose up -d
 ### Action Server Development
 
 - All actions must inherit from `rasa_sdk.Action` and implement `name()` and `run()` methods
-- Use the shared `db = DatabaseConnection()` instance (actions/actions.py:57) for queries
-- The `execute_query()` method (actions/actions.py:35) returns `RealDictCursor` results (dict-like rows) when `fetch=True`
+- Actions are organized by domain: catalog/, cart/, orders/, etc. See actions/README.md for details
+- Use the shared `db` instance from `actions.database` for queries: `from actions.database import db`
+- The `execute_query()` method returns `RealDictCursor` results (dict-like rows) when `fetch=True`
 - Always use parameterized queries to prevent SQL injection: `db.execute_query(query, (param1, param2), fetch=True)`
+- SQL queries should be defined as constants in `actions/database/queries.py` for reusability
 - Return `SlotSet` events from actions to update conversation state: `return [SlotSet("slot_name", value)]`
 - Shopping cart logic: Products are stored in `carrito_productos` slot as list of dicts with product_id, quantity, unit_price, subtotal
+- Business logic should be extracted to utility functions (e.g., cart_utils.py) for testability
 
 ### Training Data Guidelines
 
