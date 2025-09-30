@@ -7,6 +7,7 @@
 
 -- Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- Para fuzzy matching de productos con similitud de trigramas
 
 -- Configurar zona horaria
 SET timezone = 'America/Guatemala';
@@ -185,6 +186,10 @@ CREATE INDEX idx_rasa_conversations_sender_id ON rasa_conversations(sender_id);
 CREATE INDEX idx_rasa_conversations_customer_id ON rasa_conversations(customer_id);
 CREATE INDEX idx_conversaciones_session_id ON conversaciones_chatbot(session_id);
 CREATE INDEX idx_conversaciones_intent ON conversaciones_chatbot(intent_detected);
+
+-- Índice GIN para fuzzy matching en nombres de productos
+-- Permite búsquedas rápidas con similitud de trigramas (pg_trgm)
+CREATE INDEX products_name_trgm_idx ON products USING GIN (LOWER(name) gin_trgm_ops);
 
 -- =====================================
 -- TRIGGERS PARA UPDATED_AT

@@ -10,7 +10,7 @@ from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet
 
 from actions.database import db
-from actions.database.queries import SEARCH_PRODUCT_BY_NAME, GET_LAST_CART_STATE
+from actions.database.queries import FUZZY_SEARCH_PRODUCT, SEARCH_PRODUCT_BY_NAME, GET_LAST_CART_STATE
 from actions.utils import normalize_product_name
 from actions.cart.cart_utils import (
     calculate_unit_price,
@@ -89,23 +89,50 @@ class ActionAgregarAlCarrito(Action):
         else:
             cantidad_solicitada = int(float(cantidad_solicitada))
 
+        # Validación 1: String muy corto (menos de 3 caracteres)
+        if len(producto.strip()) < 3:
+            mensaje = "🤔 El nombre del producto es muy corto. ¿Puedes ser más específico?\n"
+            mensaje += "Ejemplo: 'camisa', 'vestido', 'pantalón'"
+            dispatcher.utter_message(text=mensaje)
+            return []
+
         # Normalizar nombre de producto (manejar plurales y acentos)
         producto_normalizado = normalize_product_name(producto)
 
-        # Buscar producto en BD con búsqueda flexible
+        # Estrategia de búsqueda progresiva:
+        # 1. Intentar fuzzy matching (tolerante a typos)
+        logger.info(f"Buscando producto con fuzzy matching: '{producto}'")
         resultado = db.execute_query(
-            SEARCH_PRODUCT_BY_NAME,
-            (f"%{producto_normalizado}%", f"%{producto.lower()}%"),
+            FUZZY_SEARCH_PRODUCT,
+            (producto_normalizado, producto_normalizado),
             fetch=True
         )
 
+        # 2. Si no encuentra con fuzzy, intentar LIKE tradicional
         if not resultado:
-            mensaje = f"❌ No encontré '{producto}' en nuestro catálogo.\n"
+            logger.info(f"Fuzzy matching no encontró resultados, intentando LIKE")
+            resultado = db.execute_query(
+                SEARCH_PRODUCT_BY_NAME,
+                (f"%{producto_normalizado}%", f"%{producto.lower()}%",
+                 f"%{producto_normalizado}%", f"%{producto.lower()}%"),
+                fetch=True
+            )
+
+        # 3. Si aún no encuentra, mostrar error
+        if not resultado:
+            mensaje = f"❌ No encontré productos similares a '{producto}' en nuestro catálogo.\n\n"
+            mensaje += "**Productos disponibles:**\n"
+            mensaje += "• Camisa Básica\n• Pantalón Casual\n• Blusa Elegante\n• Vestido Verano\n• Jean Clásico\n\n"
             mensaje += "¿Quieres ver el catálogo completo? 📋"
             dispatcher.utter_message(text=mensaje)
             return []
 
         prod = resultado[0]
+
+        # Advertencia si la similitud es baja (fuzzy matching)
+        if 'match_score' in prod and prod['match_score'] < 0.5:
+            logger.warning(f"Similitud baja ({prod['match_score']:.2f}) para '{producto}' → '{prod['name']}'")
+            # No mostramos advertencia al usuario por ahora, solo logging
 
         # Verificar disponibilidad
         if cantidad_solicitada > prod['available_quantity']:
