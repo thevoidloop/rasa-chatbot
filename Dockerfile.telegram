@@ -1,0 +1,14 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Instalar dependencias
+RUN pip install --no-cache-dir \
+    aiogram==3.4.1 \
+    aiohttp==3.9.1
+
+# Copiar el script del bot
+COPY telegram_bot.py .
+
+# Comando para ejecutar el bot
+CMD ["python", "telegram_bot.py"]

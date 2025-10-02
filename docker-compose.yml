@@ -71,7 +71,24 @@ services:
       - ./endpoints.yml:/app/endpoints.yml
       - ./credentials.yml:/app/credentials.yml
     restart: unless-stopped
-    command: ["run", "--enable-api", "--cors", "*", "--endpoints", "endpoints.yml", "--debug"]
+    command: ["run", "--enable-api", "--cors", "*", "--endpoints", "endpoints.yml", "--credentials", "credentials.yml", "--debug"]
+
+  # Bot de Telegram (conexión via API REST a RASA)
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.telegram
+    container_name: rasa_telegram_bot
+    networks:
+      - rasa_network
+    depends_on:
+      - rasa-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - RASA_URL=${RASA_URL}
 
   # Portainer - Administración gráfica de contenedores Docker
   portainer:
