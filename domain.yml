@@ -46,16 +46,16 @@ slots:
 
 responses:
   utter_saludar:
-  - text: "¡Hola! 👋 Bienvenido/a a nuestra tienda de ropa. ¿Te interesa conocer nuestro catálogo de productos?"
+  - text: "¡Hola! ¿Cómo estás? 👋 Estoy aquí para ayudarte a encontrar lo que necesitas. ¿Quieres ver lo que tenemos disponible?"
 
   utter_despedir:
-  - text: "¡Hasta luego! 👋 Que tengas un excelente día. Gracias por visitarnos. ¡Vuelve pronto!"
+  - text: "¡Que tengas un excelente día! Espero verte pronto por acá 😊"
 
   utter_catalogo_intro:
-  - text: "🛍️ ¡Perfecto! Te voy a mostrar nuestro catálogo actualizado con todos los productos disponibles:"
+  - text: "Claro, déjame mostrarte lo que tenemos disponible:"
 
   utter_producto_agregado:
-  - text: "✅ Producto agregado al carrito. ¿Quieres seguir comprando o ver tu carrito?"
+  - text: "Listo, ya lo agregué. ¿Algo más que necesites?"
 
 actions:
   - action_mostrar_catalogo

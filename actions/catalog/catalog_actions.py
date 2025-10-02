@@ -28,22 +28,22 @@ class ActionMostrarCatalogo(Action):
         productos = db.execute_query(GET_AVAILABLE_PRODUCTS, fetch=True)
 
         if productos and len(productos) > 0:
-            catalogo_mensaje = "🛍️ **CATÁLOGO DE PRODUCTOS DISPONIBLES**\n\n"
+            catalogo_mensaje = "Mira, esto es lo que tenemos ahora mismo:\n\n"
 
             for i, producto in enumerate(productos, 1):
-                catalogo_mensaje += f"**{i}. {producto['name']}** (Código: {producto['code']})\n"
+                catalogo_mensaje += f"**{i}. {producto['name']}**\n"
 
                 if producto['description']:
-                    catalogo_mensaje += f"   📝 {producto['description']}\n"
+                    catalogo_mensaje += f"   {producto['description']}\n"
 
-                catalogo_mensaje += f"   💰 Precio: Q{producto['individual_price']:.2f}\n"
-                catalogo_mensaje += f"   📦 Stock: {producto['available_quantity']} unidades\n"
+                catalogo_mensaje += f"   💰 Q{producto['individual_price']:.2f}\n"
+                catalogo_mensaje += f"   📦 {producto['available_quantity']} disponibles\n"
                 catalogo_mensaje += "\n"
 
-            catalogo_mensaje += "¿Qué producto te interesa agregar al carrito? 🛒"
+            catalogo_mensaje += "¿Te interesa algo de esto? 🛒"
 
         else:
-            catalogo_mensaje = "😔 No tenemos productos disponibles en este momento."
+            catalogo_mensaje = "Lo siento, ahora mismo no tengo productos disponibles 😔"
 
         dispatcher.utter_message(text=catalogo_mensaje)
 
