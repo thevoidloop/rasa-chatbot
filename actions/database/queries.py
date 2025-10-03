@@ -6,7 +6,8 @@ Todas las queries están definidas como constantes para facilitar mantenimiento
 # Queries para catálogo de productos
 GET_AVAILABLE_PRODUCTS = """
 SELECT p.id, p.name, p.code, p.description,
-       p.individual_price, p.wholesale_price, p.bundle_price, p.wholesale_quantity,
+       p.individual_price, p.wholesale_price, p.bundle_price,
+       p.wholesale_quantity, p.bundle_quantity,
        i.available_quantity
 FROM products p
 LEFT JOIN inventory i ON p.id = i.product_id
@@ -19,7 +20,8 @@ ORDER BY p.name
 # Threshold: 0.2 = 20% de similitud mínima (balanceado para nombres compuestos)
 FUZZY_SEARCH_PRODUCT = """
 SELECT p.id, p.name, p.code, p.individual_price, p.wholesale_price,
-       p.bundle_price, p.wholesale_quantity, i.available_quantity,
+       p.bundle_price, p.wholesale_quantity, p.bundle_quantity,
+       i.available_quantity,
        similarity(LOWER(p.name), LOWER(%s)) AS match_score
 FROM products p
 LEFT JOIN inventory i ON p.id = i.product_id
@@ -33,7 +35,8 @@ LIMIT 1
 # Sin ELSE en ORDER BY para evitar devolver productos aleatorios
 SEARCH_PRODUCT_BY_NAME = """
 SELECT p.id, p.name, p.code, p.individual_price, p.wholesale_price,
-       p.bundle_price, p.wholesale_quantity, i.available_quantity
+       p.bundle_price, p.wholesale_quantity, p.bundle_quantity,
+       i.available_quantity
 FROM products p
 LEFT JOIN inventory i ON p.id = i.product_id
 WHERE p.active = true

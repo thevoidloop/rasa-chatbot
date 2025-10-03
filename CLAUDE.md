@@ -10,12 +10,13 @@ This is a Spanish-language RASA chatbot for an e-commerce clothing store. The sy
 
 ### Multi-Container Docker Setup
 
-The system runs 4 main services (see docker-compose.yml:1):
+The system runs 5 main services (see docker-compose.yml:1):
 
 1. **postgres** (port 5432): PostgreSQL 15 database with pre-initialized schema and sample data
 2. **rasa-action-server** (port 5055): Custom action server handling business logic and database operations
 3. **rasa-server** (port 5005): Main RASA NLU/Core server with REST API
-4. **portainer** (ports 9000/9443): Container management UI
+4. **telegram-bot**: Telegram bot connector using aiogram that communicates with RASA via REST API
+5. **portainer** (ports 9000/9443): Container management UI
 
 ### Database Schema
 
@@ -53,14 +54,15 @@ Database connection uses environment variables: `DB_HOST`, `DB_PORT`, `DB_NAME`,
 - **Language**: Spanish (config.yml:1)
 - **NLU Pipeline** (config.yml:3-21): WhitespaceTokenizer, RegexFeaturizer, LexicalSyntacticFeaturizer, CountVectorsFeaturizer (word + char n-grams), DIETClassifier (100 epochs), EntitySynonymMapper, ResponseSelector, FallbackClassifier (0.3 threshold)
 - **Policies** (config.yml:23-36): Default policies (commented out in config, auto-configured by RASA: MemoizationPolicy, RulePolicy, UnexpecTEDIntentPolicy, TEDPolicy)
-- **Intents** (domain.yml:3-8): saludar, despedir, consultar_catalogo, agregar_al_carrito
-- **Entities** (domain.yml:9-11): producto, cantidad
-- **Slots** (domain.yml:13-45):
+- **Intents** (domain.yml:3-10): saludar, despedir, consultar_catalogo, agregar_al_carrito, consultar_envios, consultar_pagos
+- **Entities** (domain.yml:11-13): producto, cantidad
+- **Slots** (domain.yml:15-47):
   - `producto_seleccionado` (text): Tracks product user wants to add
   - `cantidad` (float): Quantity of product
   - `carrito_productos` (list): Full shopping cart state with product details
   - `carrito_total` (float): Total cart value
   - `carrito_cantidad_items` (float): Total item count in cart
+- **Session config** (domain.yml:79-81): 24-hour expiration with slot carry-over enabled
 
 ## Common Commands
 
@@ -173,27 +175,30 @@ docker compose up -d
 ### Database Modifications
 
 - Schema changes require updating init-db.sql:1 and rebuilding with `docker compose down -v`
-- The `rasa_user` has full privileges on all tables (init-db.sql:308)
+- The `rasa_user` has full privileges on all tables
 - Use English table/column names (recent migration from Spanish names)
 - Triggers auto-update `updated_at` timestamps on customers, products, inventory, orders
+- PostgreSQL extension `pg_trgm` enabled for fuzzy product name matching (init-db.sql:10)
 
 ### Environment Configuration
 
-Database credentials in docker-compose.yml:6-10:
-```
-POSTGRES_DB: rasa_chatbot
-POSTGRES_USER: rasa_user
-POSTGRES_PASSWORD: rasa_password_2024
-```
-
-Same credentials must be used in action-server environment (docker-compose.yml:32-37).
+- Copy `.env` file (use `.env` as template) for environment variables
+- Database credentials in docker-compose.yml:6-10:
+  ```
+  POSTGRES_DB: rasa_chatbot
+  POSTGRES_USER: rasa_user
+  POSTGRES_PASSWORD: rasa_password_2024
+  ```
+- Same credentials must be used in action-server environment (docker-compose.yml:32-37)
+- Telegram bot requires `TELEGRAM_TOKEN` and `RASA_URL` in .env file (docker-compose.yml:87-91)
 
 ### Access Points
 
 - **Portainer UI**: https://localhost:9443 (container management)
 - **RASA API**: http://localhost:5005 (chat endpoint: /webhooks/rest/webhook)
-- **Action Server Health**: http://localhost:5055/health
+- **Action Server**: http://localhost:5055/health (health check), http://localhost:5055/actions (list registered actions)
 - **PostgreSQL**: localhost:5432 (from host machine)
+- **Telegram Bot**: Connects via environment variable RASA_URL (typically http://rasa-server:5005/webhooks/rest/webhook)
 
 ## Troubleshooting
 
@@ -214,5 +219,11 @@ Same credentials must be used in action-server environment (docker-compose.yml:3
 
 ### Database connection errors in actions
 - The action server waits for postgres health check (docker-compose.yml:42-44)
-- Connection details in DatabaseConnection class (actions/actions.py:19-25)
-- Test connection: `docker exec -it rasa_action_server python -c "from actions.actions import db; print(db.get_connection())"`
+- Connection details in DatabaseConnection class (actions/database/connection.py:12-19)
+- Test connection: `docker exec -it rasa_action_server python -c "from actions.database import db; print(db.get_connection())"`
+
+### Telegram bot issues
+- Ensure .env file exists with valid `TELEGRAM_TOKEN` and `RASA_URL`
+- Check logs: `docker compose logs -f telegram-bot`
+- Verify rasa-server is running and accessible from telegram-bot container
+- Bot uses aiogram library and connects via REST API (telegram_bot.py:1-101)

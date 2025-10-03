@@ -36,8 +36,16 @@ class ActionMostrarCatalogo(Action):
                 if producto['description']:
                     catalogo_mensaje += f"   {producto['description']}\n"
 
-                catalogo_mensaje += f"   💰 Q{producto['individual_price']:.2f}\n"
-                catalogo_mensaje += f"   📦 {producto['available_quantity']} disponibles\n"
+                catalogo_mensaje += f"   💰 Q{producto['individual_price']:.2f} (unidad)\n"
+
+                # Mostrar precios de mayoreo y fardo si existen
+                if producto['wholesale_price'] and producto['wholesale_quantity']:
+                    catalogo_mensaje += f"   💰 Q{producto['wholesale_price']:.2f} (desde {producto['wholesale_quantity']} unidades)\n"
+
+                if producto['bundle_price'] and producto['bundle_quantity']:
+                    catalogo_mensaje += f"   💰 Q{producto['bundle_price']:.2f} (fardo de {producto['bundle_quantity']} unidades)\n"
+
+                catalogo_mensaje += f"   📦 {producto['available_quantity']} unidades disponibles\n"
                 catalogo_mensaje += "\n"
 
             catalogo_mensaje += "¿Te interesa algo de esto? 🛒"

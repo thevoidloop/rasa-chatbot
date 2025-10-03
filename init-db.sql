@@ -53,6 +53,7 @@ CREATE TABLE products (
     wholesale_price DECIMAL(10,2) CHECK (wholesale_price >= 0),
     bundle_price DECIMAL(10,2) CHECK (bundle_price >= 0),
     wholesale_quantity INTEGER DEFAULT 6 CHECK (wholesale_quantity > 0),
+    bundle_quantity INTEGER DEFAULT 12 CHECK (bundle_quantity > 0),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     active BOOLEAN DEFAULT true
@@ -267,12 +268,12 @@ GROUP BY p.id, p.name, p.code;
 -- =====================================
 
 -- Productos de ejemplo
-INSERT INTO products (code, name, description, individual_price, wholesale_price, bundle_price, wholesale_quantity) VALUES
-('CAM001', 'Camisa Básica', 'Camisa de algodón básica disponible en varios colores', 25.00, 22.00, 20.00, 6),
-('PANT001', 'Pantalón Casual', 'Pantalón casual cómodo para uso diario', 45.00, 40.00, 35.00, 6),
-('BLUS001', 'Blusa Elegante', 'Blusa elegante para ocasiones especiales', 35.00, 30.00, 28.00, 6),
-('VEST001', 'Vestido Verano', 'Vestido ligero perfecto para el verano', 55.00, 50.00, 45.00, 6),
-('JEAN001', 'Jean Clásico', 'Jean de mezclilla clásico', 65.00, 60.00, 55.00, 6);
+INSERT INTO products (code, name, description, individual_price, wholesale_price, bundle_price, wholesale_quantity, bundle_quantity) VALUES
+('CAM001', 'Camisa Básica', 'Camisa de algodón básica disponible en varios colores', 25.00, 22.00, 20.00, 6, 12),
+('PANT001', 'Pantalón Casual', 'Pantalón casual cómodo para uso diario', 45.00, 40.00, 35.00, 6, 24),
+('BLUS001', 'Blusa Elegante', 'Blusa elegante para ocasiones especiales', 35.00, 30.00, 28.00, 6, 18),
+('VEST001', 'Vestido Verano', 'Vestido ligero perfecto para el verano', 55.00, 50.00, 45.00, 6, 12),
+('JEAN001', 'Jean Clásico', 'Jean de mezclilla clásico', 65.00, 60.00, 55.00, 6, 15);
 
 -- Inventario inicial
 INSERT INTO inventory (product_id, available_quantity, minimum_stock) VALUES

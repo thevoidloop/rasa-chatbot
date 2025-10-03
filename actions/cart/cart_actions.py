@@ -11,7 +11,7 @@ from rasa_sdk.events import SlotSet
 
 from actions.database import db
 from actions.database.queries import FUZZY_SEARCH_PRODUCT, SEARCH_PRODUCT_BY_NAME, GET_LAST_CART_STATE
-from actions.utils import normalize_product_name
+from actions.utils import normalize_product_name, normalize_quantity
 from actions.cart.cart_utils import (
     calculate_unit_price,
     calculate_cart_totals,
@@ -78,16 +78,18 @@ class ActionAgregarAlCarrito(Action):
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
         producto = tracker.get_slot("producto_seleccionado")
-        cantidad_solicitada = tracker.get_slot("cantidad")
+        cantidad_slot = tracker.get_slot("cantidad")
 
         if not producto:
             dispatcher.utter_message(text="¿Qué producto te gustaría agregar? 🤔")
             return []
 
-        if not cantidad_solicitada:
-            cantidad_solicitada = 1
-        else:
-            cantidad_solicitada = int(float(cantidad_solicitada))
+        # Normalizar cantidad (manejar "media docena", "docena", "fardo", etc.)
+        cantidad_str = str(cantidad_slot) if cantidad_slot else "1"
+
+        # Por ahora normalizamos sin bundle_quantity, lo obtendremos después
+        cantidad_solicitada, cantidad_descripcion = normalize_quantity(cantidad_str, None)
+        cantidad_solicitada = int(cantidad_solicitada)
 
         # Validación 1: String muy corto (menos de 3 caracteres)
         if len(producto.strip()) < 3:
@@ -129,6 +131,13 @@ class ActionAgregarAlCarrito(Action):
 
         prod = resultado[0]
 
+        # Si la cantidad original era un "fardo", recalcular con bundle_quantity del producto
+        if "fardo" in cantidad_str.lower():
+            bundle_quantity = prod.get('bundle_quantity', 12)  # Default 12 si no existe
+            cantidad_solicitada, cantidad_descripcion = normalize_quantity(cantidad_str, bundle_quantity)
+            cantidad_solicitada = int(cantidad_solicitada)
+            logger.info(f"Cantidad recalculada con bundle_quantity={bundle_quantity}: {cantidad_descripcion}")
+
         # Advertencia si la similitud es baja (fuzzy matching)
         if 'match_score' in prod and prod['match_score'] < 0.5:
             logger.warning(f"Similitud baja ({prod['match_score']:.2f}) para '{producto}' → '{prod['name']}'")
@@ -154,9 +163,9 @@ class ActionAgregarAlCarrito(Action):
         # Calcular totales
         total_carrito, cantidad_items = calculate_cart_totals(carrito)
 
-        # Mensaje de confirmación
-        mensaje = f"Perfecto, agregué {cantidad_solicitada} {prod['name']} a tu carrito ✅\n\n"
-        mensaje += f"💰 Q{precio_unitario:.2f} c/u\n"
+        # Mensaje de confirmación con descripción de cantidad legible
+        mensaje = f"Perfecto, agregué {cantidad_descripcion} de {prod['name']} a tu carrito ✅\n\n"
+        mensaje += f"💰 Q{precio_unitario:.2f} c/u ({precio_tipo})\n"
         mensaje += f"💵 Subtotal: Q{subtotal_item:.2f}\n\n"
         mensaje += format_cart_summary(carrito, total_carrito)
         mensaje += "\n\n¿Te gustaría algo más? 🛍️"

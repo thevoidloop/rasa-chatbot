@@ -11,28 +11,36 @@ def calculate_unit_price(cantidad: int, producto: dict) -> tuple:
     """
     Calcula el precio unitario según la cantidad solicitada y los tiers de precios
 
+    Pricing tiers:
+    - individual_price: precio por unidad cuando cantidad < wholesale_quantity
+    - wholesale_price: precio por unidad cuando cantidad >= wholesale_quantity
+    - bundle_price: precio por unidad cuando cantidad >= bundle_quantity
+
     Args:
         cantidad: Cantidad de productos solicitada
         producto: Diccionario con información del producto (individual_price, wholesale_price,
-                 bundle_price, wholesale_quantity)
+                 bundle_price, bundle_quantity, wholesale_quantity)
 
     Returns:
         tuple: (precio_unitario, tipo_precio) donde tipo_precio puede ser 'individual',
                'wholesale' o 'bundle'
     """
-    # Bundle: 12+ unidades
-    if cantidad >= 12 and producto.get('bundle_price'):
-        precio_unitario = float(producto['bundle_price']) / 12
+    bundle_quantity = producto.get('bundle_quantity', 12)
+    wholesale_quantity = producto.get('wholesale_quantity', 6)
+
+    # Bundle: cantidad >= bundle_quantity (ej: 12+, 15+, 18+, etc según producto)
+    if cantidad >= bundle_quantity and producto.get('bundle_price'):
+        precio_unitario = float(producto['bundle_price'])
         precio_tipo = "bundle"
-        logger.info(f"Precio bundle aplicado: Q{precio_unitario:.2f}/unidad")
+        logger.info(f"Precio bundle aplicado: Q{precio_unitario:.2f}/unidad (desde {bundle_quantity} unidades)")
 
-    # Wholesale: cantidad >= wholesale_quantity (típicamente 6)
-    elif cantidad >= producto.get('wholesale_quantity', 6) and producto.get('wholesale_price'):
-        precio_unitario = float(producto['wholesale_price']) / float(producto['wholesale_quantity'])
+    # Wholesale: cantidad >= wholesale_quantity pero < bundle_quantity
+    elif cantidad >= wholesale_quantity and producto.get('wholesale_price'):
+        precio_unitario = float(producto['wholesale_price'])
         precio_tipo = "wholesale"
-        logger.info(f"Precio mayoreo aplicado: Q{precio_unitario:.2f}/unidad")
+        logger.info(f"Precio mayoreo aplicado: Q{precio_unitario:.2f}/unidad (desde {wholesale_quantity} unidades)")
 
-    # Individual
+    # Individual: cantidad < wholesale_quantity
     else:
         precio_unitario = float(producto['individual_price'])
         precio_tipo = "individual"

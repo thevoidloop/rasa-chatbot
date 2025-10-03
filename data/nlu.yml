@@ -63,6 +63,16 @@ nlu:
     - añadir [vestido](producto)
     - agregar [12](cantidad) [playeras](producto) al carrito
     - me llevo [6](cantidad) [shorts](producto)
+    - quiero [media docena](cantidad) de [camisas](producto)
+    - agregar [una docena](cantidad) de [pantalones](producto)
+    - añade [un fardo](cantidad) de [blusas](producto)
+    - me llevo [2 docenas](cantidad) de [vestidos](producto)
+    - agregar [1/2 docena](cantidad) de [jeans](producto)
+    - quiero [3 fardos](cantidad) de [playeras](producto)
+    - pon [½ docena](cantidad) de [shorts](producto)
+    - agregar [dos docenas](cantidad) de [camisetas](producto)
+    - añadir [un fardo](cantidad) de [pantalón](producto)
+    - me llevo [media](cantidad) de [camisas](producto)
 
 - intent: consultar_envios
   examples: |
@@ -102,6 +112,14 @@ nlu:
     - métodos de pago disponibles
     - opciones de pago
     - cómo se paga
+
+# Regex patterns para cantidades especiales
+- regex: cantidad
+  examples: |
+    - \b(media docena|½ docena|1\/2 docena)\b
+    - \b(\d+\s*docenas?|una? docenas?|dos docenas|tres docenas)\b
+    - \b(\d+\s*fardos?|un fardo|fardos?)\b
+    - \bmedia\b
 
 # Lookups para entidades
 - lookup: producto
