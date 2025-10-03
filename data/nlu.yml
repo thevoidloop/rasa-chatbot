@@ -64,6 +64,45 @@ nlu:
     - agregar [12](cantidad) [playeras](producto) al carrito
     - me llevo [6](cantidad) [shorts](producto)
 
+- intent: consultar_envios
+  examples: |
+    - cómo son los envíos
+    - información de envío
+    - cuánto cuesta el envío
+    - hacen envíos
+    - envían a todo el país
+    - qué precio tiene el envío
+    - cuál es el costo de envío
+    - info de envíos
+    - detalles del envío
+    - precios de envío
+    - envíos a domicilio
+    - hacen entregas
+    - cómo funciona el envío
+    - cuándo llega el envío
+    - por qué empresa envían
+    - envío gratis
+    - tienen envío gratis
+    - cómo puedo obtener envío gratis
+
+- intent: consultar_pagos
+  examples: |
+    - formas de pago
+    - cómo puedo pagar
+    - métodos de pago
+    - aceptan pago contra entrega
+    - puedo hacer depósito
+    - cuáles son las formas de pago
+    - info de pagos
+    - información de pago
+    - cómo pago
+    - puedo pagar al recibir
+    - hacen contra entrega
+    - aceptan depósitos
+    - métodos de pago disponibles
+    - opciones de pago
+    - cómo se paga
+
 # Lookups para entidades
 - lookup: producto
   examples: |

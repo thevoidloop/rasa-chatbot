@@ -18,3 +18,15 @@ rules:
   conversation_start: true
   steps:
   - action: action_recuperar_carrito
+
+# Información de envíos
+- rule: Proporcionar información de envíos
+  steps:
+  - intent: consultar_envios
+  - action: utter_info_envios
+
+# Información de pagos
+- rule: Proporcionar información de pagos
+  steps:
+  - intent: consultar_pagos
+  - action: utter_info_pagos

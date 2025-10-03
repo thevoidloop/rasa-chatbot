@@ -5,6 +5,8 @@ intents:
   - despedir
   - consultar_catalogo
   - agregar_al_carrito
+  - consultar_envios
+  - consultar_pagos
 
 entities:
   - producto
@@ -57,6 +59,12 @@ responses:
   utter_producto_agregado:
   - text: "Listo, ya lo agregué. ¿Algo más que necesites?"
 
+  utter_info_envios:
+  - text: "📌 Tenemos envíos a todo el país 🇬🇹 por medio de Forzá o Cargo Expreso 🚚\n\n**Precios de envío:**\n\n✳️ Q30 si es pago contra entrega\n✳️ Q18 si es previo depósito\n\n🤩 **¡Buenas noticias!** Si tu compra es mayor de Q800 y realizas previo depósito 💳, el envío sale completamente **gratis** ✅"
+
+  utter_info_pagos:
+  - text: "Manejamos 2 formas de pago:\n\n💵 **Pago contra entrega:** Pagas cuando recibes tu pedido (envío Q30)\n\n💳 **Depósito previo:** Realizas el depósito antes del envío (envío Q18)\n\n🎁 **Tip:** Si tu compra es mayor de Q800 y haces depósito previo, ¡el envío es gratis!"
+
 actions:
   - action_mostrar_catalogo
   - action_agregar_al_carrito
@@ -65,6 +73,8 @@ actions:
   - utter_despedir
   - utter_catalogo_intro
   - utter_producto_agregado
+  - utter_info_envios
+  - utter_info_pagos
 
 session_config:
   session_expiration_time: 1440  # 24 horas (1 día)
