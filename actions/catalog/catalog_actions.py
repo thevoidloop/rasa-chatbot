@@ -28,7 +28,13 @@ class ActionMostrarCatalogo(Action):
         productos = db.execute_query(GET_AVAILABLE_PRODUCTS, fetch=True)
 
         if productos and len(productos) > 0:
-            catalogo_mensaje = "Mira, esto es lo que tenemos ahora mismo:\n\n"
+            # Explicación de precios al inicio
+            catalogo_mensaje = "📋 **Nuestros precios:**\n\n"
+            catalogo_mensaje += "💰 **Precio Minorista:** De 1 a 5 unidades\n"
+            catalogo_mensaje += "💰 **Precio Emprendedor:** De 6 a 11 unidades\n"
+            catalogo_mensaje += "💰 **Precio Mayorista:** 12 o más unidades (docena/fardo)\n\n"
+            catalogo_mensaje += "━━━━━━━━━━━━━━━━━━━━\n\n"
+            catalogo_mensaje += "Mira, esto es lo que tenemos ahora mismo:\n\n"
 
             for i, producto in enumerate(productos, 1):
                 catalogo_mensaje += f"**{i}. {producto['name']}**\n"
@@ -36,14 +42,14 @@ class ActionMostrarCatalogo(Action):
                 if producto['description']:
                     catalogo_mensaje += f"   {producto['description']}\n"
 
-                catalogo_mensaje += f"   💰 Q{producto['individual_price']:.2f} (unidad)\n"
+                catalogo_mensaje += f"   💰 Minorista: Q{producto['individual_price']:.2f}/unidad\n"
 
-                # Mostrar precios de mayoreo y fardo si existen
+                # Mostrar precios de emprendedor y mayorista si existen
                 if producto['wholesale_price'] and producto['wholesale_quantity']:
-                    catalogo_mensaje += f"   💰 Q{producto['wholesale_price']:.2f} (desde {producto['wholesale_quantity']} unidades)\n"
+                    catalogo_mensaje += f"   💰 Emprendedor: Q{producto['wholesale_price']:.2f}/unidad\n"
 
                 if producto['bundle_price'] and producto['bundle_quantity']:
-                    catalogo_mensaje += f"   💰 Q{producto['bundle_price']:.2f} (fardo de {producto['bundle_quantity']} unidades)\n"
+                    catalogo_mensaje += f"   💰 Mayorista: Q{producto['bundle_price']:.2f}/unidad (fardo {producto['bundle_quantity']} uds)\n"
 
                 catalogo_mensaje += f"   📦 {producto['available_quantity']} unidades disponibles\n"
                 catalogo_mensaje += "\n"

@@ -69,6 +69,7 @@ def add_or_update_cart_item(carrito: list, producto: dict, cantidad: int,
                             precio_unitario: float, precio_tipo: str) -> list:
     """
     Agrega un producto al carrito o actualiza la cantidad si ya existe
+    Guarda todos los precios del producto para poder recalcular después
 
     Args:
         carrito: Lista actual del carrito
@@ -86,24 +87,79 @@ def add_or_update_cart_item(carrito: list, producto: dict, cantidad: int,
     for item in carrito:
         if item['product_id'] == producto['id']:
             item['quantity'] += cantidad
-            item['subtotal'] = float(item['unit_price']) * item['quantity']
+            # No recalculamos aquí, se hará después con la cantidad total
             producto_existente = True
             logger.info(f"Producto existente actualizado: {producto['name']}, nueva cantidad: {item['quantity']}")
             break
 
-    # Si no existe, agregar nuevo item
+    # Si no existe, agregar nuevo item con todos los precios
     if not producto_existente:
-        subtotal_item = precio_unitario * cantidad
         carrito.append({
             'product_id': producto['id'],
             'product_name': producto['name'],
             'product_code': producto['code'],
             'quantity': cantidad,
-            'unit_price': precio_unitario,
-            'subtotal': subtotal_item,
-            'price_type': precio_tipo
+            'unit_price': precio_unitario,  # Se actualizará después
+            'subtotal': precio_unitario * cantidad,  # Se actualizará después
+            'price_type': precio_tipo,  # Se actualizará después
+            # Guardar todos los precios para recalcular
+            'individual_price_value': float(producto['individual_price']),
+            'wholesale_price_value': float(producto.get('wholesale_price', producto['individual_price'])),
+            'bundle_price_value': float(producto.get('bundle_price', producto['individual_price']))
         })
         logger.info(f"Nuevo producto agregado al carrito: {producto['name']}, cantidad: {cantidad}")
+
+    return carrito
+
+
+def recalculate_cart_prices(carrito: list) -> list:
+    """
+    Recalcula los precios de todos los productos en el carrito basándose en la cantidad total.
+    El tier de precios se aplica según el total de unidades en el carrito.
+
+    Args:
+        carrito: Lista de items en el carrito
+
+    Returns:
+        list: Carrito con precios recalculados
+    """
+    if not carrito:
+        return carrito
+
+    # Calcular cantidad total de items en el carrito
+    cantidad_total = sum(int(item['quantity']) for item in carrito)
+
+    # Determinar el tier de precios basado en la cantidad total
+    if cantidad_total >= 12:
+        price_field = 'bundle_price'
+        price_type = 'mayorista'
+    elif cantidad_total >= 6:
+        price_field = 'wholesale_price'
+        price_type = 'emprendedor'
+    else:
+        price_field = 'individual_price'
+        price_type = 'minorista'
+
+    logger.info(f"Recalculando precios del carrito. Cantidad total: {cantidad_total}, Tier: {price_type}")
+
+    # Recalcular precios de cada item en el carrito
+    for item in carrito:
+        # El precio correcto ya está guardado en el item según el campo
+        # Necesitamos obtener el producto de nuevo para tener todos los precios
+        # Por ahora, asumimos que los precios están en el item
+
+        # Determinar qué precio usar según el tier
+        if price_type == 'mayorista' and 'bundle_price_value' in item:
+            precio_unitario = float(item['bundle_price_value'])
+        elif price_type == 'emprendedor' and 'wholesale_price_value' in item:
+            precio_unitario = float(item['wholesale_price_value'])
+        else:
+            precio_unitario = float(item.get('individual_price_value', item['unit_price']))
+
+        # Actualizar precio unitario y subtotal
+        item['unit_price'] = precio_unitario
+        item['price_type'] = price_type
+        item['subtotal'] = precio_unitario * int(item['quantity'])
 
     return carrito
 

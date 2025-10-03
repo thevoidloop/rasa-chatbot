@@ -16,7 +16,8 @@ from actions.cart.cart_utils import (
     calculate_unit_price,
     calculate_cart_totals,
     add_or_update_cart_item,
-    format_cart_summary
+    format_cart_summary,
+    recalculate_cart_prices
 )
 
 logger = logging.getLogger(__name__)
@@ -160,13 +161,23 @@ class ActionAgregarAlCarrito(Action):
         # Agregar o actualizar producto en el carrito
         carrito = add_or_update_cart_item(carrito, prod, cantidad_solicitada, precio_unitario, precio_tipo)
 
-        # Calcular totales
+        # IMPORTANTE: Recalcular precios basándose en la cantidad total del carrito
+        carrito = recalculate_cart_prices(carrito)
+
+        # Calcular totales después del recalculo
         total_carrito, cantidad_items = calculate_cart_totals(carrito)
+
+        # Determinar el tier aplicado basándose en la cantidad total
+        if cantidad_items >= 12:
+            tier_name = "mayorista"
+        elif cantidad_items >= 6:
+            tier_name = "emprendedor"
+        else:
+            tier_name = "minorista"
 
         # Mensaje de confirmación con descripción de cantidad legible
         mensaje = f"Perfecto, agregué {cantidad_descripcion} de {prod['name']} a tu carrito ✅\n\n"
-        mensaje += f"💰 Q{precio_unitario:.2f} c/u ({precio_tipo})\n"
-        mensaje += f"💵 Subtotal: Q{subtotal_item:.2f}\n\n"
+        mensaje += f"🏷️ Precio aplicado: **{tier_name.capitalize()}** ({int(cantidad_items)} unidades en total)\n\n"
         mensaje += format_cart_summary(carrito, total_carrito)
         mensaje += "\n\n¿Te gustaría algo más? 🛍️"
 
