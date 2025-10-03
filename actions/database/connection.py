@@ -38,6 +38,7 @@ class DatabaseConnection:
                 cur.execute(query, params)
                 if fetch:
                     result = cur.fetchall()
+                    conn.commit()
                     return result
                 conn.commit()
                 return True

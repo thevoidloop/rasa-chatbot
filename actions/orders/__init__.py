@@ -1,4 +1,8 @@
-# Placeholder para futuras acciones de pedidos
-# TODO: Implementar ActionConfirmarPedido, ActionCancelarPedido, etc.
+"""
+Módulo de acciones relacionadas con pedidos
+"""
+from actions.orders.order_actions import ActionConfirmarPedido
 
-__all__ = []
+__all__ = [
+    'ActionConfirmarPedido'
+]

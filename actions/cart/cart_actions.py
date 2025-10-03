@@ -217,7 +217,6 @@ class ActionAgregarAlCarrito(Action):
 
         mensaje += f"🏷️ Precio aplicado: **{tier_name.capitalize()}** ({int(cantidad_items)} unidades en total)\n\n"
         mensaje += format_cart_summary(carrito, total_carrito)
-        mensaje += "\n\n¿Te gustaría algo más? 🛍️"
 
         dispatcher.utter_message(text=mensaje)
 

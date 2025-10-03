@@ -7,10 +7,14 @@ intents:
   - agregar_al_carrito
   - consultar_envios
   - consultar_pagos
+  - rechazar_agregar_mas
 
 entities:
   - producto
   - cantidad
+  - nombre_receptor
+  - telefono
+  - direccion
 
 slots:
   producto_seleccionado:
@@ -46,6 +50,34 @@ slots:
     mappings:
     - type: custom
 
+  # Slots para información de envío
+  nombre_receptor:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_text
+      conditions:
+      - active_loop: shipping_info_form
+        requested_slot: nombre_receptor
+
+  telefono:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_text
+      conditions:
+      - active_loop: shipping_info_form
+        requested_slot: telefono
+
+  direccion:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_text
+      conditions:
+      - active_loop: shipping_info_form
+        requested_slot: direccion
+
 responses:
   utter_saludar:
   - text: "¡Hola! ¿Cómo estás? 👋 Estoy aquí para ayudarte a encontrar lo que necesitas. ¿Quieres ver lo que tenemos disponible?"
@@ -65,16 +97,49 @@ responses:
   utter_info_pagos:
   - text: "Manejamos 2 formas de pago:\n\n💵 **Pago contra entrega:** Pagas cuando recibes tu pedido (envío Q30)\n\n💳 **Depósito previo:** Realizas el depósito antes del envío (envío Q18)\n\n🎁 **Tip:** Si tu compra es mayor de Q800 y haces depósito previo, ¡el envío es gratis!"
 
+  utter_preguntar_agregar_mas:
+  - text: "¿Te gustaría agregar algo más a tu pedido? 🛍️"
+
+  utter_solicitar_info_envio:
+  - text: "Perfecto, para confirmar tu pedido necesito algunos datos de envío 📦"
+
+  utter_ask_nombre_receptor:
+  - text: "Por favor envíame los siguientes datos (puedes enviarlos todos juntos o uno por uno):\n\n1️⃣ Nombre completo de quien recibe\n2️⃣ Número de celular\n3️⃣ Dirección de entrega completa"
+
+  utter_ask_telefono:
+  - text: "¿Cuál es el número de celular de contacto?"
+
+  utter_ask_direccion:
+  - text: "¿Cuál es la dirección de entrega completa?"
+
+  utter_pedido_confirmado:
+  - text: "¡Excelente! Tu pedido ha sido confirmado exitosamente ✅\n\nTe enviaremos los detalles por mensaje. ¡Gracias por tu compra! 🎉"
+
+forms:
+  shipping_info_form:
+    required_slots:
+      - nombre_receptor
+      - telefono
+      - direccion
+
 actions:
   - action_mostrar_catalogo
   - action_agregar_al_carrito
   - action_recuperar_carrito
+  - action_confirmar_pedido
+  - validate_shipping_info_form
   - utter_saludar
   - utter_despedir
   - utter_catalogo_intro
   - utter_producto_agregado
   - utter_info_envios
   - utter_info_pagos
+  - utter_preguntar_agregar_mas
+  - utter_solicitar_info_envio
+  - utter_ask_nombre_receptor
+  - utter_ask_telefono
+  - utter_ask_direccion
+  - utter_pedido_confirmado
 
 session_config:
   session_expiration_time: 1440  # 24 horas (1 día)

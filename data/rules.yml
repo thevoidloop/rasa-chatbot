@@ -30,3 +30,18 @@ rules:
   steps:
   - intent: consultar_pagos
   - action: utter_info_pagos
+
+# Activar formulario de envío cuando usuario rechaza agregar más
+- rule: Activar formulario después de rechazar agregar más
+  steps:
+  - intent: rechazar_agregar_mas
+  - action: utter_solicitar_info_envio
+  - action: shipping_info_form
+  - active_loop: shipping_info_form
+
+# Confirmar pedido cuando el formulario de envío se completa
+- rule: Confirmar pedido después de completar formulario
+  steps:
+  - action: shipping_info_form
+  - active_loop: null
+  - action: action_confirmar_pedido

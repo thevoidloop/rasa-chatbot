@@ -63,3 +63,72 @@ WHERE sender_id = %s
 ORDER BY timestamp DESC
 LIMIT 1
 """
+
+# Queries para gestión de clientes y envíos
+GET_OR_CREATE_CUSTOMER = """
+INSERT INTO customers (name, phone)
+VALUES (%s, %s)
+ON CONFLICT (phone)
+DO UPDATE SET
+    name = EXCLUDED.name,
+    updated_at = CURRENT_TIMESTAMP
+RETURNING id, name, phone
+"""
+
+CREATE_SHIPPING_DATA = """
+INSERT INTO shipping_data (
+    customer_id,
+    department,
+    municipality,
+    address_line1,
+    delivery_phone,
+    receiver_name,
+    is_primary_address
+)
+VALUES (%s, 'Guatemala', 'Ciudad', %s, %s, %s, true)
+RETURNING id
+"""
+
+# Queries para creación de órdenes
+CREATE_ORDER = """
+INSERT INTO orders (
+    order_number,
+    customer_id,
+    shipping_data_id,
+    subtotal,
+    shipping_cost,
+    total,
+    status,
+    notes,
+    source
+)
+VALUES (%s, %s, %s, %s, %s, %s, 'pendiente', %s, 'chatbot')
+RETURNING id, order_number
+"""
+
+CREATE_ORDER_DETAIL = """
+INSERT INTO order_details (
+    order_id,
+    product_id,
+    quantity,
+    unit_price,
+    subtotal
+)
+VALUES (%s, %s, %s, %s, %s)
+"""
+
+UPDATE_INVENTORY_RESERVE = """
+UPDATE inventory
+SET reserved_quantity = reserved_quantity + %s,
+    available_quantity = available_quantity - %s,
+    updated_at = CURRENT_TIMESTAMP
+WHERE product_id = %s
+  AND available_quantity >= %s
+"""
+
+GET_NEXT_ORDER_NUMBER = """
+SELECT 'ORD-' || TO_CHAR(CURRENT_DATE, 'YYYYMMDD') || '-' ||
+       LPAD((COUNT(*) + 1)::TEXT, 6, '0') as next_number
+FROM orders
+WHERE order_number LIKE 'ORD-' || TO_CHAR(CURRENT_DATE, 'YYYYMMDD') || '%'
+"""

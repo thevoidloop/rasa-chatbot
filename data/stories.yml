@@ -87,3 +87,71 @@ stories:
   - action: action_agregar_al_carrito
   - intent: despedir
   - action: utter_despedir
+
+- story: flujo confirmación de pedido completo
+  steps:
+  - intent: agregar_al_carrito
+    entities:
+    - producto: "camisa"
+    - cantidad: 2
+  - slot_was_set:
+    - producto_seleccionado: "camisa"
+    - cantidad: 2
+  - action: action_agregar_al_carrito
+  - action: utter_preguntar_agregar_mas
+  - intent: rechazar_agregar_mas
+  - action: utter_solicitar_info_envio
+  - action: shipping_info_form
+  - active_loop: shipping_info_form
+  - slot_was_set:
+    - nombre_receptor: "Juan Pérez"
+  - slot_was_set:
+    - telefono: "12345678"
+  - slot_was_set:
+    - direccion: "1 avenida 2-3 zona 1"
+  - active_loop: null
+  - action: action_confirmar_pedido
+
+- story: agregar producto y confirmar pedido
+  steps:
+  - intent: agregar_al_carrito
+    entities:
+    - producto: "pantalón"
+    - cantidad: 6
+  - slot_was_set:
+    - producto_seleccionado: "pantalón"
+    - cantidad: 6
+  - action: action_agregar_al_carrito
+  - action: utter_preguntar_agregar_mas
+  - intent: rechazar_agregar_mas
+  - action: utter_solicitar_info_envio
+  - action: shipping_info_form
+  - active_loop: shipping_info_form
+  - active_loop: null
+  - action: action_confirmar_pedido
+
+- story: agregar múltiples productos y confirmar
+  steps:
+  - intent: agregar_al_carrito
+    entities:
+    - producto: "blusa"
+    - cantidad: 3
+  - slot_was_set:
+    - producto_seleccionado: "blusa"
+    - cantidad: 3
+  - action: action_agregar_al_carrito
+  - intent: agregar_al_carrito
+    entities:
+    - producto: "vestido"
+    - cantidad: 2
+  - slot_was_set:
+    - producto_seleccionado: "vestido"
+    - cantidad: 2
+  - action: action_agregar_al_carrito
+  - action: utter_preguntar_agregar_mas
+  - intent: rechazar_agregar_mas
+  - action: utter_solicitar_info_envio
+  - action: shipping_info_form
+  - active_loop: shipping_info_form
+  - active_loop: null
+  - action: action_confirmar_pedido

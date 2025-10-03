@@ -11,9 +11,23 @@ logger = logging.getLogger(__name__)
 # Importar todas las acciones
 from actions.catalog import ActionMostrarCatalogo
 from actions.cart import ActionAgregarAlCarrito, ActionRecuperarCarrito
+from actions.orders import ActionConfirmarPedido
 
-__all__ = [
-    'ActionMostrarCatalogo',
-    'ActionAgregarAlCarrito',
-    'ActionRecuperarCarrito',
-]
+# Importar formularios
+try:
+    from actions.forms import ValidateShippingInfoForm
+    __all__ = [
+        'ActionMostrarCatalogo',
+        'ActionAgregarAlCarrito',
+        'ActionRecuperarCarrito',
+        'ActionConfirmarPedido',
+        'ValidateShippingInfoForm',
+    ]
+except ImportError as e:
+    logger.warning(f"No se pudo importar ValidateShippingInfoForm: {e}")
+    __all__ = [
+        'ActionMostrarCatalogo',
+        'ActionAgregarAlCarrito',
+        'ActionRecuperarCarrito',
+        'ActionConfirmarPedido',
+    ]

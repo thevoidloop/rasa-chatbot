@@ -45,6 +45,15 @@ nlu:
     - me interesa ver sus productos
     - quisiera conocer los productos
     - pueden mostrarme lo que tienen
+    - sí
+    - si
+    - sí por favor
+    - si porfa
+    - claro
+    - dale
+    - ok
+    - está bien
+    - perfecto
 
 - intent: agregar_al_carrito
   examples: |
@@ -112,6 +121,34 @@ nlu:
     - métodos de pago disponibles
     - opciones de pago
     - cómo se paga
+
+- intent: rechazar_agregar_mas
+  examples: |
+    - no
+    - no gracias
+    - ya no
+    - eso es todo
+    - nada más
+    - no quiero agregar nada más
+    - ya terminé
+    - no necesito más
+    - con eso está bien
+    - suficiente
+    - así está bien
+    - ya no quiero más
+    - no, gracias
+    - no más
+    - confirmar pedido
+    - quiero confirmar mi pedido
+    - proceder con el pedido
+    - realizar pedido
+    - hacer el pedido
+    - finalizar compra
+    - completar pedido
+    - adelante con el pedido
+    - continuar con la compra
+    - listo, confirmar
+    - confirmar mi orden
 
 # Regex patterns para cantidades especiales
 - regex: cantidad
