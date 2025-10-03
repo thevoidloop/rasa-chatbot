@@ -78,88 +78,119 @@ class ActionAgregarAlCarrito(Action):
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
-        producto = tracker.get_slot("producto_seleccionado")
-        cantidad_slot = tracker.get_slot("cantidad")
+        # Obtener TODAS las entidades del mensaje (no solo los slots)
+        entities = tracker.latest_message.get('entities', [])
 
-        if not producto:
-            dispatcher.utter_message(text="¿Qué producto te gustaría agregar? 🤔")
-            return []
+        # Extraer productos y cantidades de las entidades
+        productos_entidades = [e for e in entities if e['entity'] == 'producto']
+        cantidades_entidades = [e for e in entities if e['entity'] == 'cantidad']
 
-        # Normalizar cantidad (manejar "media docena", "docena", "fardo", etc.)
-        cantidad_str = str(cantidad_slot) if cantidad_slot else "1"
+        # Si no hay productos en las entidades, intentar obtener del slot
+        if not productos_entidades:
+            producto = tracker.get_slot("producto_seleccionado")
+            if not producto:
+                dispatcher.utter_message(text="¿Qué producto te gustaría agregar? 🤔")
+                return []
+            productos_entidades = [{'value': producto}]
 
-        # Por ahora normalizamos sin bundle_quantity, lo obtendremos después
-        cantidad_solicitada, cantidad_descripcion = normalize_quantity(cantidad_str, None)
-        cantidad_solicitada = int(cantidad_solicitada)
+        # Emparejar productos con cantidades
+        # Si hay menos cantidades que productos, asumir cantidad 1 para los faltantes
+        productos_a_agregar = []
+        for i, prod_entity in enumerate(productos_entidades):
+            producto_nombre = prod_entity['value']
+            if i < len(cantidades_entidades):
+                cantidad_str = str(cantidades_entidades[i]['value'])
+            else:
+                cantidad_str = "1"
 
-        # Validación 1: String muy corto (menos de 3 caracteres)
-        if len(producto.strip()) < 3:
-            mensaje = "Mmm, no te entendí bien. ¿Me puedes decir el nombre del producto completo?\n"
-            mensaje += "Por ejemplo: camisa, vestido, pantalón..."
-            dispatcher.utter_message(text=mensaje)
-            return []
+            productos_a_agregar.append({
+                'nombre': producto_nombre,
+                'cantidad_str': cantidad_str
+            })
 
-        # Normalizar nombre de producto (manejar plurales y acentos)
-        producto_normalizado = normalize_product_name(producto)
-
-        # Estrategia de búsqueda progresiva:
-        # 1. Intentar fuzzy matching (tolerante a typos)
-        logger.info(f"Buscando producto con fuzzy matching: '{producto}'")
-        resultado = db.execute_query(
-            FUZZY_SEARCH_PRODUCT,
-            (producto_normalizado, producto_normalizado),
-            fetch=True
-        )
-
-        # 2. Si no encuentra con fuzzy, intentar LIKE tradicional
-        if not resultado:
-            logger.info(f"Fuzzy matching no encontró resultados, intentando LIKE")
-            resultado = db.execute_query(
-                SEARCH_PRODUCT_BY_NAME,
-                (f"%{producto_normalizado}%", f"%{producto.lower()}%",
-                 f"%{producto_normalizado}%", f"%{producto.lower()}%"),
-                fetch=True
-            )
-
-        # 3. Si aún no encuentra, mostrar error
-        if not resultado:
-            mensaje = f"Lo siento, no entendí a qué te refieres con '{producto}' 🤔\n\n"
-            mensaje += "Tengo estos productos disponibles:\n"
-            mensaje += "• Camisa Básica\n• Pantalón Casual\n• Blusa Elegante\n• Vestido Verano\n• Jean Clásico\n\n"
-            mensaje += "¿Quieres que te muestre el catálogo completo?"
-            dispatcher.utter_message(text=mensaje)
-            return []
-
-        prod = resultado[0]
-
-        # Si la cantidad original era un "fardo", recalcular con bundle_quantity del producto
-        if "fardo" in cantidad_str.lower():
-            bundle_quantity = prod.get('bundle_quantity', 12)  # Default 12 si no existe
-            cantidad_solicitada, cantidad_descripcion = normalize_quantity(cantidad_str, bundle_quantity)
-            cantidad_solicitada = int(cantidad_solicitada)
-            logger.info(f"Cantidad recalculada con bundle_quantity={bundle_quantity}: {cantidad_descripcion}")
-
-        # Advertencia si la similitud es baja (fuzzy matching)
-        if 'match_score' in prod and prod['match_score'] < 0.5:
-            logger.warning(f"Similitud baja ({prod['match_score']:.2f}) para '{producto}' → '{prod['name']}'")
-            # No mostramos advertencia al usuario por ahora, solo logging
-
-        # Verificar disponibilidad
-        if cantidad_solicitada > prod['available_quantity']:
-            mensaje = f"Uy, solo me quedan {prod['available_quantity']} unidades de {prod['name']} disponibles 😕\n\n"
-            mensaje += f"¿Te parece si agregamos {prod['available_quantity']}?"
-            dispatcher.utter_message(text=mensaje)
-            return []
-
-        # Calcular precio según cantidad
-        precio_unitario, precio_tipo = calculate_unit_price(cantidad_solicitada, prod)
-        subtotal_item = precio_unitario * cantidad_solicitada
+        logger.info(f"Procesando {len(productos_a_agregar)} productos: {productos_a_agregar}")
 
         # Obtener carrito actual
         carrito = tracker.get_slot("carrito_productos") or []
+        productos_agregados = []
 
-        # Agregar o actualizar producto en el carrito
-        carrito = add_or_update_cart_item(carrito, prod, cantidad_solicitada, precio_unitario, precio_tipo)
+        # Procesar cada producto
+        for item in productos_a_agregar:
+            producto = item['nombre']
+            cantidad_str = item['cantidad_str']
+
+            # Normalizar cantidad
+            cantidad_solicitada, cantidad_descripcion = normalize_quantity(cantidad_str, None)
+            cantidad_solicitada = int(cantidad_solicitada)
+
+            # Validación: String muy corto (menos de 3 caracteres)
+            if len(producto.strip()) < 3:
+                logger.warning(f"Producto '{producto}' demasiado corto, omitiendo")
+                continue
+
+            # Normalizar nombre de producto (manejar plurales y acentos)
+            producto_normalizado = normalize_product_name(producto)
+
+            # Estrategia de búsqueda progresiva:
+            # 1. Intentar fuzzy matching (tolerante a typos)
+            logger.info(f"Buscando producto con fuzzy matching: '{producto}'")
+            resultado = db.execute_query(
+                FUZZY_SEARCH_PRODUCT,
+                (producto_normalizado, producto_normalizado),
+                fetch=True
+            )
+
+            # 2. Si no encuentra con fuzzy, intentar LIKE tradicional
+            if not resultado:
+                logger.info(f"Fuzzy matching no encontró resultados, intentando LIKE")
+                resultado = db.execute_query(
+                    SEARCH_PRODUCT_BY_NAME,
+                    (f"%{producto_normalizado}%", f"%{producto.lower()}%",
+                     f"%{producto_normalizado}%", f"%{producto.lower()}%"),
+                    fetch=True
+                )
+
+            # 3. Si no encuentra, omitir este producto y continuar con el siguiente
+            if not resultado:
+                logger.warning(f"No se encontró el producto: '{producto}'")
+                continue
+
+            prod = resultado[0]
+
+            # Si la cantidad original era un "fardo", recalcular con bundle_quantity del producto
+            if "fardo" in cantidad_str.lower():
+                bundle_quantity = prod.get('bundle_quantity', 12)  # Default 12 si no existe
+                cantidad_solicitada, cantidad_descripcion = normalize_quantity(cantidad_str, bundle_quantity)
+                cantidad_solicitada = int(cantidad_solicitada)
+                logger.info(f"Cantidad recalculada con bundle_quantity={bundle_quantity}: {cantidad_descripcion}")
+
+            # Advertencia si la similitud es baja (fuzzy matching)
+            if 'match_score' in prod and prod['match_score'] < 0.5:
+                logger.warning(f"Similitud baja ({prod['match_score']:.2f}) para '{producto}' → '{prod['name']}'")
+
+            # Verificar disponibilidad
+            if cantidad_solicitada > prod['available_quantity']:
+                logger.warning(f"Stock insuficiente para {prod['name']}: {cantidad_solicitada} > {prod['available_quantity']}")
+                continue
+
+            # Calcular precio según cantidad (se recalculará después según total del carrito)
+            precio_unitario, precio_tipo = calculate_unit_price(cantidad_solicitada, prod)
+
+            # Agregar o actualizar producto en el carrito
+            carrito = add_or_update_cart_item(carrito, prod, cantidad_solicitada, precio_unitario, precio_tipo)
+
+            # Registrar producto agregado
+            productos_agregados.append({
+                'nombre': prod['name'],
+                'cantidad': cantidad_solicitada,
+                'cantidad_desc': cantidad_descripcion
+            })
+
+        # Si no se agregó ningún producto, mostrar error
+        if not productos_agregados:
+            mensaje = "Lo siento, no pude agregar ningún producto. ¿Podrías intentar de nuevo? 🤔"
+            dispatcher.utter_message(text=mensaje)
+            return []
 
         # IMPORTANTE: Recalcular precios basándose en la cantidad total del carrito
         carrito = recalculate_cart_prices(carrito)
@@ -175,8 +206,15 @@ class ActionAgregarAlCarrito(Action):
         else:
             tier_name = "minorista"
 
-        # Mensaje de confirmación con descripción de cantidad legible
-        mensaje = f"Perfecto, agregué {cantidad_descripcion} de {prod['name']} a tu carrito ✅\n\n"
+        # Mensaje de confirmación con todos los productos agregados
+        if len(productos_agregados) == 1:
+            mensaje = f"Perfecto, agregué {productos_agregados[0]['cantidad_desc']} de {productos_agregados[0]['nombre']} a tu carrito ✅\n\n"
+        else:
+            mensaje = "Perfecto, agregué estos productos a tu carrito ✅\n\n"
+            for prod_ag in productos_agregados:
+                mensaje += f"   • {prod_ag['cantidad_desc']} de {prod_ag['nombre']}\n"
+            mensaje += "\n"
+
         mensaje += f"🏷️ Precio aplicado: **{tier_name.capitalize()}** ({int(cantidad_items)} unidades en total)\n\n"
         mensaje += format_cart_summary(carrito, total_carrito)
         mensaje += "\n\n¿Te gustaría algo más? 🛍️"
