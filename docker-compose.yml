@@ -111,8 +111,8 @@ services:
   # API Backend - FastAPI
   api-server:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./api/Dockerfile
     container_name: rasa_api_server
     env_file:
       - .env
@@ -130,7 +130,8 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./api:/app
+      - ./api:/app/api
+      - ./scripts:/app/scripts
       - ./data:/rasa_data
       - ./models:/rasa_models
       - ./backups:/backups
