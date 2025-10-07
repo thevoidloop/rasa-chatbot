@@ -111,6 +111,23 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# === Documentos ===
+# === TRAINING PLATFORM ===
+# Streamlit cache
+training_platform/.streamlit/secrets.toml
+.streamlit/
 
-requerimientos.pdf*
+# Reports generados
+reports/
+*.pdf
+
+# Backups de training data
+training_data_backups/
+
+# Sesiones de usuarios
+sessions/
+
+# Archivos temporales de anotaciones
+annotations_temp/
+
+# === Documentos ===
+requerimientos.pdf
