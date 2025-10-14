@@ -123,6 +123,9 @@ CREATE TABLE rasa_conversations (
 -- =====================================
 
 -- Tabla para el tracker store de RASA (requerida por RASA)
+-- IMPORTANTE: data es TEXT en lugar de JSONB para compatibilidad con RASA 3.6.19 + psycopg2
+-- RASA tiene un bug de deserialización con JSONB que causa fallback a InMemoryTrackerStore
+-- Ver: database/04-fix-events-jsonb-to-text.sql para más detalles
 CREATE TABLE IF NOT EXISTS events (
     id BIGSERIAL PRIMARY KEY,
     sender_id VARCHAR(255) NOT NULL,
@@ -130,7 +133,7 @@ CREATE TABLE IF NOT EXISTS events (
     timestamp DOUBLE PRECISION,
     intent_name VARCHAR(255),
     action_name VARCHAR(255),
-    data JSONB
+    data TEXT
 );
 
 -- Tabla para logging de conversaciones

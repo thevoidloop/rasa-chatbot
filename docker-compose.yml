@@ -8,10 +8,13 @@ services:
       POSTGRES_USER: rasa_user
       POSTGRES_PASSWORD: rasa_password_2024
       POSTGRES_HOST_AUTH_METHOD: md5
+      TZ: America/Guatemala
+      PGTZ: America/Guatemala
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
       - ./database/init-platform-tables.sql:/docker-entrypoint-initdb.d/02-init-platform-tables.sql:ro
+      - ./database/03-sync-rasa-conversations.sql:/docker-entrypoint-initdb.d/03-sync-rasa-conversations.sql:ro
     ports:
       - "5432:5432"
     networks:
@@ -120,6 +123,7 @@ services:
       - DATABASE_URL=postgresql://rasa_user:rasa_password_2024@postgres:5432/rasa_chatbot
       - REDIS_URL=redis://redis:6379/0
       - RASA_URL=http://rasa-server:5005
+      - TZ=America/Guatemala
     ports:
       - "8000:8000"
     networks:
@@ -140,10 +144,10 @@ services:
   # Celery Worker - Async task processing
   celery-worker:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./api/Dockerfile
     container_name: rasa_celery_worker
-    command: celery -A tasks.celery_app worker --loglevel=info
+    command: celery -A api.tasks.celery_app worker --loglevel=info
     env_file:
       - .env
     environment:
@@ -157,7 +161,8 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./api:/app
+      - ./api:/app/api
+      - ./scripts:/app/scripts
       - ./data:/rasa_data
       - ./models:/rasa_models
       - ./backups:/backups
@@ -167,10 +172,10 @@ services:
   # Flower - Monitoring de Celery (opcional)
   flower:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./api/Dockerfile
     container_name: rasa_flower
-    command: celery -A tasks.celery_app flower --port=5555
+    command: celery -A api.tasks.celery_app flower --port=5555
     env_file:
       - .env
     environment:
@@ -195,6 +200,7 @@ services:
     environment:
       - API_URL=http://api-server:8000
       - RASA_URL=http://rasa-server:5005
+      - TZ=America/Guatemala
     ports:
       - "8501:8501"
     networks:

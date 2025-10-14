@@ -78,3 +78,30 @@ class APIClient:
             return response.status_code == 200
         except:
             return False
+
+    def _make_request(self, method: str, endpoint: str, **kwargs) -> Any:
+        """
+        Make a generic API request
+
+        Args:
+            method: HTTP method (GET, POST, PUT, DELETE)
+            endpoint: API endpoint path
+            **kwargs: Additional arguments for requests
+
+        Returns:
+            Response data
+        """
+        url = f"{self.base_url}{endpoint}"
+        headers = self._get_headers()
+
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            **kwargs
+        )
+
+        if response.status_code in [200, 201]:
+            return response.json()
+        else:
+            raise Exception(f"API request failed: {response.status_code} - {response.text}")

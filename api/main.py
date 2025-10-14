@@ -4,7 +4,7 @@ Training Platform API Backend
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routers import auth
+from api.routers import auth, metrics
 from api.database.connection import engine, Base
 import os
 
@@ -31,6 +31,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(metrics.router)
 
 @app.get("/")
 async def root():

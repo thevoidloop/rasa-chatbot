@@ -2,19 +2,14 @@
 action_endpoint:
   url: "http://rasa-action-server:5055/webhook"
 
-# Tracker store - Comentado temporalmente debido a error de JSON deserialization
-# RASA 3.6.19 tiene conflicto con psycopg2 cuando deserializa campos JSON/JSONB
-# Fallback: InMemoryTrackerStore (se pierde historial entre reinicios)
-# Nota: Los eventos críticos (carrito) se siguen guardando en tabla 'events'
-# y pueden recuperarse con ActionRecuperarCarrito
-#
-# Para producción, considerar usar Redis TrackerStore en lugar de SQL
-# tracker_store:
-#   type: sql
-#   dialect: postgresql
-#   url: postgres
-#   port: 5432
-#   db: rasa_chatbot
-#   username: rasa_user
-#   password: rasa_password_2024
-#   login_db: rasa_chatbot
+# Tracker store - Habilitado para Training Platform
+# Guarda todos los eventos en PostgreSQL para análisis y métricas
+tracker_store:
+  type: sql
+  dialect: postgresql
+  url: postgres
+  port: 5432
+  db: rasa_chatbot
+  username: rasa_user
+  password: rasa_password_2024
+  login_db: rasa_chatbot
