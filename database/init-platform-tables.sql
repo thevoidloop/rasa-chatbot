@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS annotations (
 
     -- Metadata
     annotation_type VARCHAR(20) CHECK (annotation_type IN ('intent', 'entity', 'both')),
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'trained', 'deployed')),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'trained', 'deployed')),
     notes TEXT,
 
     -- Auditoría
@@ -75,6 +75,11 @@ CREATE TABLE IF NOT EXISTS annotations (
     annotated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     reviewed_by INTEGER REFERENCES platform_users(id) ON DELETE SET NULL,
     reviewed_at TIMESTAMP,
+
+    -- Workflow de aprobación (QA Lead)
+    approved_by INTEGER REFERENCES platform_users(id) ON DELETE SET NULL,
+    approved_at TIMESTAMP,
+    rejection_reason TEXT,
 
     -- Training tracking
     included_in_training_job INTEGER,  -- FK a training_jobs (creada después)
@@ -89,6 +94,8 @@ CREATE INDEX idx_annotations_status ON annotations(status);
 CREATE INDEX idx_annotations_annotated_by ON annotations(annotated_by);
 CREATE INDEX idx_annotations_annotated_at ON annotations(annotated_at DESC);
 CREATE INDEX idx_annotations_corrected_intent ON annotations(corrected_intent);
+CREATE INDEX idx_annotations_approved_by ON annotations(approved_by);
+CREATE INDEX idx_annotations_approved_at ON annotations(approved_at DESC);
 
 -- ============================================
 -- TABLA: training_jobs

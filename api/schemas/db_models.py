@@ -50,7 +50,12 @@ class Annotation(Base):
     annotated_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     reviewed_by = Column(Integer, ForeignKey("platform_users.id", ondelete="SET NULL"))
     reviewed_at = Column(DateTime(timezone=True))
-    
+
+    # Workflow de aprobación (QA Lead)
+    approved_by = Column(Integer, ForeignKey("platform_users.id", ondelete="SET NULL"), index=True)
+    approved_at = Column(DateTime(timezone=True), index=True)
+    rejection_reason = Column(Text)
+
     # Training tracking
     included_in_training_job = Column(Integer, ForeignKey("training_jobs.id", ondelete="SET NULL"))
 

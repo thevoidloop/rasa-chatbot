@@ -104,9 +104,15 @@ The Training Platform is a full-stack Python application designed to reduce QA t
 - **api/routers/**: REST API endpoints
   - `auth.py`: JWT authentication (login, register, logout, me)
   - `metrics.py`: Dashboard metrics (summary, timeline, intents, heatmap, funnel)
+  - `conversations.py`: Conversation viewing and filtering with pagination
+  - `annotations.py`: Annotation CRUD with approval workflow (qa_analyst → qa_lead)
+  - `export.py`: Export annotations to RASA NLU format (YAML download)
 - **api/services/**: Business logic layer
   - `auth_service.py`: User authentication and authorization
   - `metrics_service.py`: Complex queries for dashboard analytics using Guatemala timezone
+  - `conversation_service.py`: Conversation queries with filtering and CSV export
+  - `annotation_service.py`: Annotation management with permission checks and activity logging
+  - `export_service.py`: Converts annotations to RASA NLU YAML format with validation
 - **api/database/connection.py**: SQLAlchemy engine and session management
 - **api/schemas/db_models.py**: ORM models for all 8 platform tables
 - **api/models/auth.py**: Pydantic models for request/response validation
@@ -390,6 +396,27 @@ docker compose exec api-server python scripts/seed_sample_data.py  # Optional: a
 - **Performance**: Casting adds ~0.1ms per query, negligible for dashboard use cases
 - **Migration**: For existing databases, apply database/04-fix-events-jsonb-to-text.sql and update api/services/metrics_service.py queries
 
+**Annotation and Export System Implementation:**
+- **Approval Workflow**: qa_analyst creates annotations → qa_lead approves/rejects → approved annotations ready for export
+- **Status States**: pending (initial) → approved/rejected (qa_lead action) → trained/deployed (after training)
+- **Permission Layers**: Implemented in service layer with helper functions (`_check_user_permissions`, `_check_annotation_exists`)
+- **Activity Logging**: All CRUD operations automatically logged to `activity_logs` table with user, action, details
+- **Entity Format**: Stored as JSONB array with structure: `[{entity, value, start, end}]`
+- **RASA NLU Export**: Converts annotations to YAML format with markdown entities: `[text](entity_type)`
+- **YAML Generation**: Manual string construction for precise format control (not PyYAML dump)
+- **Validation Layers**: (1) Format validation (YAML structure), (2) Domain validation (intents/entities exist in events table)
+- **Export Filters**: Support date ranges (`from_date`, `to_date`) and intent filtering
+- **Export Service Pattern**: Service layer returns data structures, router layer handles HTTP concerns
+- **Example YAML Output**:
+  ```yaml
+  version: "3.1"
+  nlu:
+  - intent: consultar_catalogo
+    examples: |
+      - quiero ver productos
+      - muéstrame el [catálogo](producto)
+  ```
+
 ### Database Modifications
 
 **⚠️ CRITICAL POLICY: All database changes MUST follow this checklist:**
@@ -462,6 +489,199 @@ When making ANY database schema changes, you MUST complete ALL of the following 
 - **API Documentation**: http://localhost:8000/docs (Swagger UI), http://localhost:8000/redoc (ReDoc)
 - **Flower Dashboard**: http://localhost:5555 (Celery task monitoring)
 - **Redis**: localhost:6379 (not exposed to host by default)
+
+## Testing de Endpoints
+
+### ⚠️ IMPORTANTE: Evitar Desbordamiento de Tokens
+
+Cuando pruebas endpoints de API con curl, **NUNCA** uses JSON inline con comillas escapadas ya que esto puede causar errores de parsing y desperdiciar tokens en múltiples intentos.
+
+**❌ INCORRECTO** (causa errores de JSON decode):
+```bash
+# NO HACER ESTO - Las comillas causan problemas de escape
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Admin123!"}'
+```
+
+**✅ CORRECTO** (usa archivos temporales):
+```bash
+# Método 1: Crear archivo JSON temporal y usarlo
+cat > /tmp/login.json << 'EOF'
+{
+  "username": "admin",
+  "password": "Admin123!"
+}
+EOF
+
+curl -X POST 'http://localhost:8000/api/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/login.json | jq '.'
+```
+
+**✅ TAMBIÉN CORRECTO** (usa heredoc inline):
+```bash
+# Método 2: Heredoc inline con cat
+curl -X POST 'http://localhost:8000/api/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d @- << 'EOF' | jq '.'
+{
+  "username": "admin",
+  "password": "Admin123!"
+}
+EOF
+```
+
+### Patrón Recomendado para Testing de Endpoints
+
+**1. Obtener Token de Autenticación:**
+```bash
+# Guardar token en variable
+TOKEN=$(cat > /tmp/login.json << 'EOF'
+{
+  "username": "admin",
+  "password": "Admin123!"
+}
+EOF
+curl -X POST 'http://localhost:8000/api/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/login.json 2>/dev/null | jq -r '.access_token')
+
+# Verificar que el token se obtuvo correctamente
+echo "Token: $TOKEN"
+```
+
+**2. Probar Endpoint GET con Autenticación:**
+```bash
+curl -X GET 'http://localhost:8000/api/v1/annotations/stats' \
+  -H "Authorization: Bearer $TOKEN" 2>/dev/null | jq '.'
+```
+
+**3. Probar Endpoint POST con JSON Complejo:**
+```bash
+# Crear archivo con payload complejo
+cat > /tmp/annotation.json << 'EOF'
+{
+  "conversation_id": "test_user_123",
+  "message_text": "Quiero comprar una blusa",
+  "original_intent": "saludar",
+  "corrected_intent": "consultar_catalogo",
+  "original_confidence": 0.45,
+  "original_entities": [],
+  "corrected_entities": [
+    {
+      "entity": "producto",
+      "value": "blusa",
+      "start": 14,
+      "end": 19
+    }
+  ],
+  "annotation_type": "both",
+  "notes": "El usuario claramente quiere consultar el catálogo, no saludar"
+}
+EOF
+
+# Hacer request
+curl -X POST 'http://localhost:8000/api/v1/annotations' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/annotation.json 2>/dev/null | jq '.'
+```
+
+**4. Probar Múltiples Endpoints en Secuencia:**
+```bash
+# Guardar token
+TOKEN=$(cat > /tmp/login.json << 'EOF'
+{"username": "admin", "password": "Admin123!"}
+EOF
+curl -X POST 'http://localhost:8000/api/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/login.json 2>/dev/null | jq -r '.access_token')
+
+# Test 1: Stats
+echo "=== Estadísticas ==="
+curl -X GET 'http://localhost:8000/api/v1/annotations/stats' \
+  -H "Authorization: Bearer $TOKEN" 2>/dev/null | jq '.'
+
+# Test 2: Crear anotación
+echo "=== Crear Anotación ==="
+cat > /tmp/annotation.json << 'EOF'
+{"conversation_id": "test", "message_text": "hola", "corrected_intent": "saludar", "annotation_type": "intent"}
+EOF
+curl -X POST 'http://localhost:8000/api/v1/annotations' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/annotation.json 2>/dev/null | jq '.id'
+
+# Test 3: Listar
+echo "=== Listar Anotaciones ==="
+curl -X GET 'http://localhost:8000/api/v1/annotations?page=1&page_size=10' \
+  -H "Authorization: Bearer $TOKEN" 2>/dev/null | jq '.items | length'
+```
+
+### Usar Swagger UI para Testing Manual
+
+**Alternativa recomendada:** Usa Swagger UI en http://localhost:8000/docs para testing manual:
+
+1. Abrir http://localhost:8000/docs en el navegador
+2. Click en "Authorize" en la esquina superior derecha
+3. Hacer login con `POST /api/v1/auth/login`
+4. Copiar el `access_token` de la respuesta
+5. Pegar en el campo "Value" con el formato: `Bearer YOUR_TOKEN_HERE`
+6. Click "Authorize" y luego "Close"
+7. Ahora todos los endpoints autenticados se pueden probar directamente desde la UI
+
+**Ventajas de Swagger UI:**
+- No hay problemas de escape de JSON
+- Validación automática de esquemas
+- Documentación inline
+- Menor consumo de tokens
+- Más rápido para testing exploratorio
+
+### Testing Automatizado
+
+Para testing más robusto, considera crear scripts de prueba en Python:
+
+```python
+# scripts/test_annotations_api.py
+import requests
+import json
+
+BASE_URL = "http://localhost:8000"
+
+# Login
+login_data = {"username": "admin", "password": "Admin123!"}
+response = requests.post(f"{BASE_URL}/api/v1/auth/login", json=login_data)
+token = response.json()["access_token"]
+
+headers = {"Authorization": f"Bearer {token}"}
+
+# Test stats
+response = requests.get(f"{BASE_URL}/api/v1/annotations/stats", headers=headers)
+print("Stats:", response.json())
+
+# Test create
+annotation = {
+    "conversation_id": "test_001",
+    "message_text": "quiero una blusa",
+    "corrected_intent": "consultar_catalogo",
+    "annotation_type": "intent"
+}
+response = requests.post(f"{BASE_URL}/api/v1/annotations", json=annotation, headers=headers)
+print("Created:", response.json()["id"])
+```
+
+### Resumen de Mejores Prácticas
+
+1. **Usar archivos temporales** para JSON payloads (evita problemas de escape)
+2. **Guardar tokens en variables** para reutilización
+3. **Usar jq para formatear** respuestas JSON (más legible)
+4. **Redirigir stderr** con `2>/dev/null` para ocultar progress de curl
+5. **Usar Swagger UI** para testing exploratorio manual
+6. **Crear scripts Python** para testing repetitivo o CI/CD
+7. **Nunca hacer múltiples intentos** con inline JSON si falla - cambiar a archivo temporal inmediatamente
+
+---
 
 ## Troubleshooting
 

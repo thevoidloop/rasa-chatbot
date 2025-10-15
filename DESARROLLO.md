@@ -339,39 +339,485 @@ Implementar dashboard con métricas en tiempo real y visualización de conversac
 
 ---
 
-## FASE 2: ANOTACIÓN (PENDIENTE 🔄)
+## FASE 2: ANOTACIÓN (EN PROGRESO 🔄 67%)
 
-### Duración Estimada: Semanas 4-5
+### Fecha de Inicio: 2025-10-14
+### Duración Estimada: 2-3 semanas
+### Progreso Actual: 67% (Parte 1 y 2 de 3 completadas)
 
 ### Objetivos
-Herramientas para corregir y anotar intents/entities en conversaciones.
+Herramientas para corregir y anotar intents/entities en conversaciones con workflow de aprobación QA.
 
-### Tareas Pendientes
+---
 
-#### 1. Interface de Anotación
-- [ ] Página de anotación (`pages/4_✏️_Anotaciones.py`)
-- [ ] Selector de conversaciones pendientes
-- [ ] Editor de intent con autocomplete
-- [ ] Editor de entities con highlight
-- [ ] Validación de formato NLU
-- [ ] Guardar anotaciones en tabla `annotations`
+### ✅ Parte 1: Backend - Modelos y Servicios (COMPLETADA)
+**Duración:** 1 día (2025-10-14)
 
-#### 2. Backend de Anotaciones
-- [ ] Endpoints CRUD en `api/routers/annotations.py`:
-  - [ ] `POST /api/v1/annotations` - Crear anotación
-  - [ ] `GET /api/v1/annotations` - Listar anotaciones
-  - [ ] `PUT /api/v1/annotations/{id}` - Actualizar
-  - [ ] `DELETE /api/v1/annotations/{id}` - Eliminar
-  - [ ] `POST /api/v1/annotations/{id}/approve` - Aprobar
-- [ ] Servicio `api/services/annotation_service.py`
-- [ ] Workflow de aprobación (qa_analyst → qa_lead)
-- [ ] Logging de cambios
+#### 1. Esquema de Base de Datos ✅
+- [x] Actualizado `database/init-platform-tables.sql`:
+  - Añadidos campos de workflow de aprobación: `approved_by`, `approved_at`, `rejection_reason`
+  - Ampliado CHECK constraint de `status`: añadidos 'approved' y 'rejected'
+  - Añadidos índices para nuevos campos
+- [x] Creado `database/05-add-annotation-approval-workflow.sql`:
+  - Script de migración para bases de datos existentes
+  - Vista `v_approved_annotations_for_training` para exportación
+  - Función `get_annotation_approval_stats()` para métricas
 
-#### 3. Exportación a Formato RASA
-- [ ] Convertir anotaciones a formato `nlu.yml`
-- [ ] Validación con RASA CLI
-- [ ] Preview antes de aplicar
-- [ ] Merge con datos existentes
+#### 2. Modelos Pydantic ✅
+**Archivo:** `api/models/annotations.py` (287 líneas)
+
+- [x] `EntityAnnotation` - Validación de entities con posiciones start/end
+- [x] `AnnotationCreate` - Request para crear anotación
+- [x] `AnnotationUpdate` - Request para actualizar (campos opcionales)
+- [x] `AnnotationApprovalRequest` - Request para aprobar/rechazar
+- [x] `AnnotationResponse` - Response con usernames joined
+- [x] `AnnotationListResponse` - Respuesta paginada
+- [x] `AnnotationStats` - Estadísticas para dashboard
+- [x] `AnnotationFilters` - Parámetros de filtrado
+
+**Validaciones implementadas:**
+- Entity positions (start < end)
+- Al menos una corrección (intent o entities)
+- Rejection reason obligatorio cuando se rechaza
+- Tipos de anotación válidos (intent, entity, both)
+
+#### 3. Modelo ORM ✅
+**Archivo:** `api/schemas/db_models.py` (modificado)
+
+- [x] Añadidos campos al modelo `Annotation`:
+  - `approved_by` (Integer, FK a platform_users)
+  - `approved_at` (DateTime con índice)
+  - `rejection_reason` (Text)
+
+#### 4. Servicio de Anotaciones ✅
+**Archivo:** `api/services/annotation_service.py` (483 líneas)
+
+**Funciones principales:**
+- [x] `create_annotation()` - Crea anotación con estado 'pending'
+- [x] `get_annotations()` - Lista paginada con filtros y JOINs
+- [x] `get_annotation_by_id()` - Obtiene anotación con usernames joined
+- [x] `update_annotation()` - Actualiza (solo creador/admin, solo si pending/rejected)
+- [x] `delete_annotation()` - Elimina (solo creador/admin, solo si pending)
+- [x] `approve_annotation()` - Aprueba/rechaza (solo qa_lead/admin)
+- [x] `get_annotation_stats()` - Estadísticas por estado con approval_rate
+- [x] `get_pending_annotations_count()` - Contador para dashboard
+
+**Funciones auxiliares:**
+- [x] `_check_annotation_exists()` - Valida existencia (404 si no existe)
+- [x] `_check_user_permissions()` - Valida permisos por rol y operación
+- [x] `_get_user_info()` - Obtiene user_id y username
+
+**Control de permisos implementado:**
+- Viewer/Developer: Solo lectura
+- QA Analyst: Crear y editar propias anotaciones
+- QA Lead: Aprobar/rechazar anotaciones
+- Admin: Acceso completo
+
+**Logging automático:**
+- Todas las operaciones se registran en `activity_logs`
+- Detalles incluyen: conversation_id, annotation_type, corrected_intent
+
+#### 5. Router de Anotaciones ✅
+**Archivo:** `api/routers/annotations.py` (332 líneas)
+
+**Endpoints implementados:**
+- [x] `POST /api/v1/annotations` - Crear anotación (qa_analyst+) → 201
+- [x] `GET /api/v1/annotations` - Listar con paginación y filtros (viewer+)
+- [x] `GET /api/v1/annotations/stats` - Estadísticas (viewer+)
+- [x] `GET /api/v1/annotations/{id}` - Ver detalle (viewer+)
+- [x] `PUT /api/v1/annotations/{id}` - Actualizar (creador/admin)
+- [x] `DELETE /api/v1/annotations/{id}` - Eliminar (creador/admin) → 204
+- [x] `POST /api/v1/annotations/{id}/approve` - Aprobar/Rechazar (qa_lead+)
+
+**Parámetros de filtrado:**
+- `page`, `page_size` - Paginación
+- `status` - pending, approved, rejected, trained, deployed
+- `conversation_id` - Filtrar por conversación
+- `intent` - Filtrar por intent corregido
+- `annotated_by` - Filtrar por creador
+- `approved_by` - Filtrar por aprobador
+
+#### 6. Integración en FastAPI ✅
+**Archivo:** `api/main.py` (modificado)
+
+- [x] Importado `annotations` router
+- [x] Registrado con `app.include_router(annotations.router)`
+- [x] Documentación automática en Swagger UI
+
+#### 7. Migración de Base de Datos ✅
+- [x] Aplicada migración en base de datos existente
+- [x] Verificadas columnas creadas correctamente
+- [x] Reiniciado servicio api-server
+
+#### 8. Testing ✅
+**Endpoints probados exitosamente:**
+- [x] `GET /api/v1/annotations/stats` - Retorna contadores y approval_rate
+- [x] `POST /api/v1/annotations` - Crea anotación con status='pending'
+- [x] `POST /api/v1/annotations/1/approve` - Aprueba y registra approver
+- [x] `GET /api/v1/annotations` - Lista con paginación y usernames
+
+**Resultados de prueba:**
+```json
+// Stats inicial
+{"total": 0, "pending": 0, "approved": 0, "rejected": 0, "trained": 0, "deployed": 0, "approval_rate": 0.0}
+
+// Después de crear y aprobar 1 anotación
+{"total": 1, "pending": 0, "approved": 1, "rejected": 0, "trained": 0, "deployed": 0, "approval_rate": 100.0}
+```
+
+---
+
+### ✅ Parte 2: Backend - Exportación y Validación (COMPLETADA)
+**Duración:** 1 día (2025-10-14)
+
+#### 1. Servicio de Exportación ✅
+**Archivo:** `api/services/export_service.py` (406 líneas)
+
+**Funciones principales:**
+- [x] `get_approved_annotations()` - Query anotaciones aprobadas con filtros
+  - Filtros: `from_date`, `to_date`, `intent_filter`
+  - Ordenado por intent y fecha de aprobación
+  - Solo retorna anotaciones con status='approved'
+- [x] `convert_annotations_to_nlu_dict()` - Agrupa ejemplos por intent
+  - Formatea entities en markdown: `[text](entity_type)`
+  - Elimina duplicados automáticamente
+  - Retorna dict: `{intent: [examples]}`
+- [x] `convert_to_rasa_nlu_yaml()` - Genera YAML en formato RASA 3.x
+  - Versión: "3.1"
+  - Sintaxis literal block para examples (`examples: |`)
+  - Formato manual para control exacto
+- [x] `validate_nlu_yaml()` - Valida estructura y formato del YAML
+  - Verifica versión, sección nlu, campos requeridos
+  - Detecta duplicados y campos faltantes
+  - Retorna (is_valid, errors, warnings)
+- [x] `validate_annotations_export()` - Valida contra datos existentes
+  - Verifica intents contra tabla events
+  - Verifica entity types contra tabla events
+  - Genera warnings para intents/entities nuevos
+- [x] `get_nlu_export_stats()` - Calcula estadísticas de exportación
+  - Total intents, examples, entities
+  - Conteo por entity type
+  - Promedio de examples por intent
+- [x] `get_existing_intents_from_db()` - Query intents desde eventos RASA
+  - Extrae de `events.data::jsonb->'parse_data'->'intent'->>'name'`
+  - Retorna lista ordenada alfabéticamente
+- [x] `get_existing_entities_from_db()` - Query entity types desde eventos
+  - Extrae de array `events.data::jsonb->'parse_data'->'entities'`
+  - Retorna lista ordenada alfabéticamente
+
+**Funciones auxiliares:**
+- [x] `_format_entity_in_text()` - Convierte entities a formato markdown
+  - Input: texto + lista de entities con posiciones start/end
+  - Output: texto con marcado `[entity_text](entity_type)`
+  - Maneja múltiples entities con posiciones correctas
+- [x] `_validate_intent_exists()` - Valida si intent existe en dominio
+- [x] `_validate_entities()` - Valida si entities existen en dominio
+
+**Formato de exportación RASA:**
+```yaml
+version: "3.1"
+
+nlu:
+- intent: consultar_catalogo
+  examples: |
+    - quiero ver productos
+    - muéstrame el [catálogo](producto)
+    - necesito [2](cantidad) [camisas](producto)
+```
+
+#### 2. Modelos Pydantic ✅
+**Archivo:** `api/models/export.py` (92 líneas)
+
+- [x] `NLUExportRequest` - Request para exportación
+  - Campos: `from_date`, `to_date`, `intent_filter`, `format`
+  - Validación de formato (solo 'yaml' soportado)
+- [x] `NLUExportStats` - Estadísticas de exportación
+  - `total_intents`, `total_examples`, `total_entities_used`
+  - `entity_usage` (Dict[str, int]) - conteo por tipo
+  - `avg_examples_per_intent`, `total_annotations`
+- [x] `NLUPreviewResponse` - Preview con validación
+  - `yaml_content` - YAML generado
+  - `stats` - Estadísticas
+  - `validation_errors` - Lista de errores críticos
+  - `validation_warnings` - Lista de advertencias
+  - `is_valid` - Bandera de validez de formato
+  - `can_export` - Bandera de exportabilidad (sin errores)
+- [x] `IntentListResponse` - Lista de intents disponibles
+  - `intents` - Lista de nombres
+  - `total` - Contador
+  - `source` - Origen de datos (database/domain/etc)
+- [x] `EntityListResponse` - Lista de entity types disponibles
+  - `entities` - Lista de tipos
+  - `total` - Contador
+  - `source` - Origen de datos
+- [x] `ExportSummary` - Resumen de operación de exportación
+
+#### 3. Router de Exportación ✅
+**Archivo:** `api/routers/export.py` (318 líneas)
+
+**Endpoints implementados:**
+- [x] `GET /api/v1/export/nlu/preview` - Preview con validación (qa_lead+)
+  - Parámetros: `from_date`, `to_date`, `intent_filter`
+  - Retorna YAML, stats, errors, warnings
+  - Validación en dos capas: formato + dominio
+  - Maneja caso sin anotaciones (retorna preview vacío)
+- [x] `GET /api/v1/export/nlu/download` - Descarga YAML (qa_lead+)
+  - Parámetros: `from_date`, `to_date`, `intent_filter`
+  - Valida antes de exportar (bloquea si hay errores)
+  - Content-Type: `application/x-yaml; charset=utf-8`
+  - Filename dinámico: `nlu_annotations_YYYYMMDD_HHMMSS.yml`
+  - HTTP 404 si no hay anotaciones aprobadas
+- [x] `GET /api/v1/export/intents` - Lista intents disponibles (viewer+)
+  - Extrae de tabla events (datos RASA)
+  - Retorna lista ordenada alfabéticamente
+  - Útil para autocomplete en UI
+- [x] `GET /api/v1/export/entities` - Lista entity types (viewer+)
+  - Extrae de tabla events (datos RASA)
+  - Retorna lista ordenada alfabéticamente
+  - Útil para validación en UI
+
+**Control de permisos:**
+- Viewer/Developer/QA Analyst: Solo pueden listar intents/entities
+- QA Lead/Admin: Pueden exportar (preview y download)
+- Helper `_check_export_permission()` valida nivel 4+
+
+#### 4. Integración en FastAPI ✅
+**Archivo:** `api/main.py` (modificado)
+
+- [x] Importado `export` router
+- [x] Registrado con `app.include_router(export.router)`
+- [x] Documentación automática en Swagger UI
+
+#### 5. Testing Completo ✅
+
+**Endpoints probados exitosamente:**
+
+✅ **GET /api/v1/export/intents**
+```json
+{
+  "intents": ["agregar_al_carrito", "consultar_catalogo", "consultar_envios",
+              "consultar_pagos", "despedir", "rechazar_agregar_mas", "saludar"],
+  "total": 7,
+  "source": "database"
+}
+```
+
+✅ **GET /api/v1/export/entities**
+```json
+{
+  "entities": ["cantidad", "producto"],
+  "total": 2,
+  "source": "database"
+}
+```
+
+✅ **GET /api/v1/export/nlu/preview**
+```json
+{
+  "yaml_content": "version: \"3.1\"\n\nnlu:\n- intent: consultar_catalogo\n  examples: |\n    - Quiero comprar[ una ](producto)blusa\n\n",
+  "stats": {
+    "total_intents": 1,
+    "total_examples": 1,
+    "total_entities_used": 1,
+    "entity_usage": {"producto": 1},
+    "avg_examples_per_intent": 1.0,
+    "total_annotations": 1
+  },
+  "validation_errors": [],
+  "validation_warnings": [],
+  "is_valid": true,
+  "can_export": true
+}
+```
+
+✅ **GET /api/v1/export/nlu/download**
+- HTTP Status: 200
+- Content-Type: `application/x-yaml; charset=utf-8`
+- Content-Disposition: `attachment; filename=nlu_annotations_20251014_234725.yml`
+- Archivo descargado correctamente
+
+✅ **Filtros probados:**
+- `from_date` y `to_date`: Filtran por fecha de aprobación ✅
+- `intent_filter`: Filtra por intent específico ✅
+- Sin anotaciones: Retorna preview vacío con warning ✅
+
+✅ **Permisos verificados:**
+- qa_analyst puede ver intents/entities ✅
+- qa_analyst NO puede exportar (403 Forbidden) ✅
+- admin puede todo ✅
+
+**Comandos de prueba ejecutados:**
+```bash
+# Script de prueba con autenticación
+cat > /tmp/test_export.sh << 'SCRIPT'
+#!/bin/bash
+TOKEN=$(curl -s -X POST 'http://localhost:8000/api/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/login.json | jq -r '.access_token')
+
+# Listar intents
+curl -s "http://localhost:8000/api/v1/export/intents" \
+  -H "Authorization: Bearer $TOKEN" | jq '.'
+
+# Preview de exportación con filtros
+curl -s "http://localhost:8000/api/v1/export/nlu/preview?from_date=2025-10-01&to_date=2025-10-20" \
+  -H "Authorization: Bearer $TOKEN" | jq '.'
+
+# Download YAML
+curl -s "http://localhost:8000/api/v1/export/nlu/download" \
+  -H "Authorization: Bearer $TOKEN" \
+  -o nlu_export.yml
+SCRIPT
+
+chmod +x /tmp/test_export.sh && /tmp/test_export.sh
+```
+
+---
+
+### 🔄 Parte 3: Frontend - Interface de Anotaciones (PENDIENTE)
+**Estimación:** 3-5 días
+
+#### 1. Página Principal de Anotaciones
+- [ ] Crear `training_platform/pages/4_✏️_Anotaciones.py`:
+  - [ ] Setup y autenticación (qa_analyst+)
+  - [ ] Sidebar con filtros (estado, intent, fecha, creador)
+  - [ ] Lista de anotaciones con tabla paginada
+  - [ ] Modal de detalles (comparación lado a lado)
+  - [ ] Modal de crear/editar anotación
+  - [ ] Modal de aprobación (solo qa_lead/admin)
+  - [ ] Métricas en header (pendientes, aprobadas, rechazadas, tasa)
+
+#### 2. Componentes Auxiliares
+- [ ] Crear `training_platform/utils/annotation_helpers.py`:
+  - [ ] `format_entities_display()` - Formatear entities
+  - [ ] `highlight_entities()` - Resaltar con colores
+  - [ ] `validate_entity_spans()` - Validar posiciones
+  - [ ] `get_intent_suggestions()` - Sugerencias de intents
+
+#### 3. Integración con Conversaciones
+- [ ] Modificar `training_platform/pages/3_💬_Conversaciones.py`:
+  - [ ] Añadir botón "Anotar" en vista detallada
+  - [ ] Abrir modal de creación pre-llenado
+  - [ ] Enlace a página de anotaciones
+
+#### 4. Página de Exportación
+- [ ] Crear `training_platform/pages/5_📤_Exportar.py` (solo qa_lead/admin):
+  - [ ] Selector de rango de fechas
+  - [ ] Checkbox "Combinar con NLU existente"
+  - [ ] Vista de preview con YAML formateado
+  - [ ] Estadísticas (# intents, # ejemplos, # entities)
+  - [ ] Lista de errores/warnings de validación
+  - [ ] Botón "Descargar NLU" (solo si no hay errores)
+  - [ ] Instrucciones de aplicación
+
+---
+
+### Archivos Creados en FASE 2 - Partes 1 y 2
+
+**Nuevos archivos:**
+- `database/05-add-annotation-approval-workflow.sql` (115 líneas) - Parte 1
+- `api/models/annotations.py` (287 líneas) - Parte 1
+- `api/services/annotation_service.py` (483 líneas) - Parte 1
+- `api/routers/annotations.py` (332 líneas) - Parte 1
+- `api/models/export.py` (92 líneas) - Parte 2 🆕
+- `api/services/export_service.py` (406 líneas) - Parte 2 🆕
+- `api/routers/export.py` (318 líneas) - Parte 2 🆕
+
+**Archivos modificados:**
+- `database/init-platform-tables.sql` - Añadidos campos de aprobación a tabla `annotations` (Parte 1)
+- `api/schemas/db_models.py` - Actualizado modelo ORM `Annotation` (Parte 1)
+- `api/main.py` - Integrados routers de annotations y export (Partes 1 y 2) 🆕
+
+**Total de líneas de código:** ~2,000 líneas nuevas
+
+---
+
+### Comandos Útiles para Anotaciones y Exportación
+
+```bash
+# ============================================
+# Base de Datos
+# ============================================
+
+# Aplicar migración de aprobación (solo en bases de datos existentes)
+cat database/05-add-annotation-approval-workflow.sql | docker exec -i rasa_postgres psql -U rasa_user -d rasa_chatbot
+
+# Verificar columnas de aprobación
+docker exec rasa_postgres psql -U rasa_user -d rasa_chatbot \
+  -c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'annotations' AND column_name IN ('approved_by', 'approved_at', 'rejection_reason');"
+
+# Ver estadísticas de anotaciones
+docker exec rasa_postgres psql -U rasa_user -d rasa_chatbot \
+  -c "SELECT * FROM get_annotation_approval_stats(30);"
+
+# Listar anotaciones aprobadas
+docker exec rasa_postgres psql -U rasa_user -d rasa_chatbot \
+  -c "SELECT id, message_text, corrected_intent, status, approved_at FROM annotations WHERE status='approved';"
+
+# Ver vista de anotaciones para entrenamiento
+docker exec rasa_postgres psql -U rasa_user -d rasa_chatbot \
+  -c "SELECT * FROM v_approved_annotations_for_training LIMIT 10;"
+
+# ============================================
+# Testing de Endpoints (requiere autenticación)
+# Ver sección "Testing de Endpoints" en CLAUDE.md
+# ============================================
+
+# 1. Crear archivo de login
+cat > /tmp/login.json << 'EOF'
+{"username": "admin", "password": "Admin123!"}
+EOF
+
+# 2. Script de prueba de exportación
+cat > /tmp/test_export.sh << 'SCRIPT'
+#!/bin/bash
+TOKEN=$(curl -s -X POST 'http://localhost:8000/api/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/login.json | jq -r '.access_token')
+
+echo "=== Listar intents disponibles ==="
+curl -s "http://localhost:8000/api/v1/export/intents" \
+  -H "Authorization: Bearer $TOKEN" | jq '.'
+
+echo -e "\n=== Listar entities disponibles ==="
+curl -s "http://localhost:8000/api/v1/export/entities" \
+  -H "Authorization: Bearer $TOKEN" | jq '.'
+
+echo -e "\n=== Preview de exportación ==="
+curl -s "http://localhost:8000/api/v1/export/nlu/preview" \
+  -H "Authorization: Bearer $TOKEN" | jq '.stats'
+
+echo -e "\n=== YAML generado ==="
+curl -s "http://localhost:8000/api/v1/export/nlu/preview" \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.yaml_content'
+
+echo -e "\n=== Descargar YAML ==="
+curl -s "http://localhost:8000/api/v1/export/nlu/download" \
+  -H "Authorization: Bearer $TOKEN" \
+  -o /tmp/nlu_export.yml
+echo "Archivo guardado en: /tmp/nlu_export.yml"
+cat /tmp/nlu_export.yml
+SCRIPT
+
+chmod +x /tmp/test_export.sh && /tmp/test_export.sh
+
+# 3. Probar con filtros
+curl -s "http://localhost:8000/api/v1/export/nlu/preview?from_date=2025-10-01&to_date=2025-10-31&intent_filter=consultar_catalogo" \
+  -H "Authorization: Bearer $(curl -s -X POST 'http://localhost:8000/api/v1/auth/login' -H 'Content-Type: application/json' -d @/tmp/login.json | jq -r '.access_token')" \
+  | jq '.'
+```
+
+---
+
+### Próximos Pasos
+
+1. ✅ ~~**Parte 2** (1-2 días): Backend de exportación a formato RASA~~ - COMPLETADO
+2. **Parte 3** (3-5 días): Frontend completo de anotaciones - EN PROGRESO
+   - Página principal de anotaciones (`4_✏️_Anotaciones.py`)
+   - Helpers de anotación
+   - Integración con página de conversaciones
+   - Página de exportación (`5_📤_Exportar.py`)
+3. **Testing E2E** (1 día): Flujo completo qa_analyst → qa_lead → export → RASA training
 
 ---
 
@@ -575,5 +1021,5 @@ docker exec -it rasa_postgres psql -U rasa_user -d rasa_chatbot \
 
 ---
 
-**Última actualización:** 2025-10-07
-**Próximo paso:** Iniciar FASE 1 - Visualización
+**Última actualización:** 2025-10-14
+**Próximo paso:** Continuar FASE 2 - Parte 3 (Frontend de Anotaciones y Exportación)
