@@ -79,17 +79,18 @@ class APIClient:
         except:
             return False
 
-    def _make_request(self, method: str, endpoint: str, **kwargs) -> Any:
+    def _make_request(self, method: str, endpoint: str, return_response: bool = False, **kwargs) -> Any:
         """
         Make a generic API request
 
         Args:
             method: HTTP method (GET, POST, PUT, DELETE)
             endpoint: API endpoint path
+            return_response: If True, return raw response content (for file downloads)
             **kwargs: Additional arguments for requests
 
         Returns:
-            Response data
+            Response data (JSON or raw content based on return_response)
         """
         url = f"{self.base_url}{endpoint}"
         headers = self._get_headers()
@@ -102,6 +103,9 @@ class APIClient:
         )
 
         if response.status_code in [200, 201]:
-            return response.json()
+            if return_response:
+                return response.content  # Return raw bytes for files
+            else:
+                return response.json()  # Return JSON for normal responses
         else:
             raise Exception(f"API request failed: {response.status_code} - {response.text}")
