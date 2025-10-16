@@ -374,8 +374,14 @@ if conversations_data.get("total", 0) > 0:
                                 st.error(f"❌ Error: {str(e)}")
 
                     with col_act2:
-                        if st.button("✍️ Anotar", use_container_width=True):
-                            st.info("🚧 Funcionalidad en desarrollo (FASE 2)")
+                        if st.button("✍️ Anotar", use_container_width=True, type="primary"):
+                            # Store conversation data in session state for annotation modal
+                            st.session_state.annotate_conversation = {
+                                "sender_id": selected_sender,
+                                "messages": messages
+                            }
+                            st.session_state.show_annotation_modal = True
+                            st.rerun()
 
                     with col_act3:
                         if st.button("🔗 Ver en RASA", use_container_width=True):
@@ -439,6 +445,181 @@ else:
     - Verifica que los filtros de intent y usuario sean correctos
     - Limpia los filtros y vuelve a intentar
     """)
+
+# === ANNOTATION MODAL ===
+if st.session_state.get("show_annotation_modal"):
+    conversation_data = st.session_state.get("annotate_conversation", {})
+    messages = conversation_data.get("messages", [])
+
+    st.markdown("---")
+    st.subheader("✍️ Crear Anotación")
+    st.markdown(f"**Conversación:** `{conversation_data.get('sender_id')}`")
+
+    # Let user select which message to annotate
+    user_messages = [msg for msg in messages if msg["type"] == "user"]
+
+    if user_messages:
+        selected_message_idx = st.selectbox(
+            "Selecciona el mensaje a anotar",
+            options=range(len(user_messages)),
+            format_func=lambda i: f"Mensaje {i+1}: {user_messages[i].get('text', '')[:60]}..."
+        )
+
+        selected_message = user_messages[selected_message_idx]
+
+        # Pre-fill annotation form
+        with st.form("quick_annotation_form"):
+            st.markdown("**Mensaje seleccionado:**")
+            st.info(selected_message.get("text", ""))
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("**Detección Original:**")
+                st.code(f"Intent: {selected_message.get('intent', 'N/A')}\nConfianza: {selected_message.get('confidence', 0)*100:.1f}%")
+
+                # Get available intents
+                try:
+                    intents_response = api_client._make_request("GET", "/api/v1/export/intents")
+                    # API returns {"intents": [...], "total": X}, extract the list
+                    if isinstance(intents_response, dict) and "intents" in intents_response:
+                        available_intents = intents_response["intents"]
+                    elif isinstance(intents_response, list):
+                        available_intents = intents_response
+                    else:
+                        available_intents = []
+                except Exception as e:
+                    st.warning(f"⚠️ No se pudieron cargar intents: {str(e)}")
+                    available_intents = []
+
+            with col2:
+                st.markdown("**Corrección:**")
+                corrected_intent = st.selectbox(
+                    "Intent Corregido *",
+                    options=available_intents,
+                    index=available_intents.index(selected_message.get("intent", ""))
+                        if selected_message.get("intent") in available_intents else 0
+                )
+
+            # Annotation type
+            annotation_type = st.radio(
+                "Tipo de corrección",
+                options=["intent", "both"],
+                format_func=lambda x: "Solo Intent" if x == "intent" else "Intent + Entities",
+                horizontal=True
+            )
+
+            # Entities (if both)
+            entities_json = "[]"
+            if annotation_type == "both":
+                entities_json = st.text_area(
+                    "Entities Corregidas (JSON)",
+                    value=json.dumps(selected_message.get("entities", []), indent=2),
+                    height=120,
+                    help='Formato: [{"entity": "producto", "value": "blusa", "start": 0, "end": 5}]'
+                )
+
+            # Notes
+            notes = st.text_area(
+                "Notas (opcional)",
+                placeholder="Explica por qué se necesita esta corrección...",
+                height=80
+            )
+
+            # Buttons
+            col_btn1, col_btn2, col_btn3 = st.columns(3)
+
+            with col_btn1:
+                submitted = st.form_submit_button("💾 Guardar Anotación", type="primary", use_container_width=True)
+
+            with col_btn2:
+                if st.form_submit_button("🔗 Ir a Anotaciones", use_container_width=True):
+                    st.session_state.show_annotation_modal = False
+                    st.session_state.go_to_annotations = True
+                    st.rerun()
+
+            with col_btn3:
+                cancelled = st.form_submit_button("❌ Cancelar", use_container_width=True)
+
+            if cancelled:
+                st.session_state.show_annotation_modal = False
+                st.rerun()
+
+            if submitted:
+                # Validate that we have data to send
+                if not corrected_intent:
+                    st.error("❌ Debes seleccionar un intent corregido")
+                    st.stop()
+
+                # Parse entities
+                try:
+                    corrected_entities = json.loads(entities_json) if annotation_type == "both" else []
+                except Exception as e:
+                    st.error(f"Error al parsear entities: {str(e)}")
+                    st.stop()
+
+                # Build annotation payload
+                annotation_data = {
+                    "conversation_id": conversation_data.get("sender_id"),
+                    "message_text": selected_message.get("text", ""),
+                    "original_intent": selected_message.get("intent"),
+                    "corrected_intent": corrected_intent,  # Always include this
+                    "original_confidence": selected_message.get("confidence", 0),
+                    "annotation_type": annotation_type,
+                }
+
+                # Add optional fields
+                if selected_message.get("entities"):
+                    annotation_data["original_entities"] = selected_message.get("entities", [])
+
+                # Only add corrected_entities if annotation type is "both" and we have entities
+                if annotation_type == "both" and corrected_entities:
+                    annotation_data["corrected_entities"] = corrected_entities
+
+                if notes:
+                    annotation_data["notes"] = notes
+
+                # Create annotation via API
+                try:
+                    with st.spinner("Creando anotación..."):
+                        response = api_client._make_request(
+                            "POST",
+                            "/api/v1/annotations",
+                            json=annotation_data
+                        )
+                        if response:
+                            st.success(f"✅ Anotación creada exitosamente (ID: {response.get('id')})")
+                            st.session_state.annotation_created = True
+                            st.session_state.annotation_id = response.get('id')
+                            st.session_state.show_annotation_modal = False
+                            st.rerun()  # Rerun to exit form and show balloons
+                except Exception as e:
+                    st.error(f"❌ Error al crear anotación: {str(e)}")
+    else:
+        st.warning("No hay mensajes del usuario en esta conversación para anotar.")
+        if st.button("❌ Cerrar"):
+            st.session_state.show_annotation_modal = False
+            st.rerun()
+
+# === HANDLE NAVIGATION TO ANNOTATIONS ===
+if st.session_state.get("go_to_annotations"):
+    st.session_state.go_to_annotations = False
+    st.switch_page("pages/4_✏️_Anotaciones.py")
+
+# === SHOW SUCCESS MESSAGE AFTER ANNOTATION CREATED ===
+if st.session_state.get("annotation_created"):
+    st.balloons()
+    st.success(f"✅ Anotación creada exitosamente (ID: {st.session_state.get('annotation_id')})")
+
+    col_success1, col_success2 = st.columns(2)
+    with col_success1:
+        if st.button("📋 Ver todas las anotaciones", type="primary", use_container_width=True):
+            st.session_state.annotation_created = False  # Clear flag
+            st.switch_page("pages/4_✏️_Anotaciones.py")
+    with col_success2:
+        if st.button("✅ Continuar", use_container_width=True):
+            st.session_state.annotation_created = False  # Clear flag
+            st.rerun()
 
 # Footer
 st.markdown("---")

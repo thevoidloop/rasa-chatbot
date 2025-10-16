@@ -4,7 +4,7 @@
 # ============================================
 
 # Streamlit Framework
-streamlit==1.29.0
+streamlit==1.31.1  # Updated for st.switch_page() support
 streamlit-aggrid==0.3.4.post3
 streamlit-option-menu==0.3.6
 
