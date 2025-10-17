@@ -34,7 +34,7 @@ def get_summary_metrics(db: Session, days: int = 7) -> Dict[str, Any]:
     total_conversations = db.execute(text("""
         SELECT COUNT(DISTINCT sender_id) as total
         FROM rasa_conversations
-        WHERE created_at >= :since_date
+        WHERE updated_at >= :since_date
     """), {"since_date": since_date_naive}).fetchone()
 
     # Get intent statistics from events table using Unix timestamp
@@ -122,11 +122,11 @@ def get_conversations_timeline(db: Session, days: int = 30) -> List[Dict[str, An
 
     result = db.execute(text("""
         SELECT
-            DATE(created_at) as date,
+            DATE(updated_at) as date,
             COUNT(DISTINCT sender_id) as conversations
         FROM rasa_conversations
-        WHERE created_at >= :since_date
-        GROUP BY DATE(created_at)
+        WHERE updated_at >= :since_date
+        GROUP BY DATE(updated_at)
         ORDER BY date
     """), {"since_date": since_date}).fetchall()
 
@@ -194,11 +194,11 @@ def get_hourly_heatmap(db: Session, days: int = 7) -> List[Dict[str, Any]]:
 
     result = db.execute(text("""
         SELECT
-            EXTRACT(DOW FROM created_at) as day_of_week,
-            EXTRACT(HOUR FROM created_at) as hour,
+            EXTRACT(DOW FROM updated_at) as day_of_week,
+            EXTRACT(HOUR FROM updated_at) as hour,
             COUNT(*) as count
         FROM rasa_conversations
-        WHERE created_at >= :since_date
+        WHERE updated_at >= :since_date
         GROUP BY day_of_week, hour
         ORDER BY day_of_week, hour
     """), {"since_date": since_date}).fetchall()
@@ -236,7 +236,7 @@ def get_success_rate_funnel(db: Session, days: int = 7) -> Dict[str, Any]:
     total = db.execute(text("""
         SELECT COUNT(DISTINCT sender_id)
         FROM rasa_conversations
-        WHERE created_at >= :since_date
+        WHERE updated_at >= :since_date
     """), {"since_date": since_date_naive}).fetchone()
 
     # Conversations with high confidence (>0.7)
@@ -252,7 +252,7 @@ def get_success_rate_funnel(db: Session, days: int = 7) -> Dict[str, Any]:
     resolved = db.execute(text("""
         SELECT COUNT(DISTINCT sender_id)
         FROM rasa_conversations
-        WHERE created_at >= :since_date
+        WHERE updated_at >= :since_date
         AND active = true
     """), {"since_date": since_date_naive}).fetchone()
 

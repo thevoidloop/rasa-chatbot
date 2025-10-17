@@ -51,11 +51,11 @@ def get_conversations_list(
     params = {}
 
     if date_from:
-        where_clauses.append("rc.created_at >= :date_from")
+        where_clauses.append("rc.updated_at >= :date_from")
         params["date_from"] = date_from
 
     if date_to:
-        where_clauses.append("rc.created_at <= :date_to")
+        where_clauses.append("rc.updated_at <= :date_to")
         params["date_to"] = f"{date_to} 23:59:59"  # Include full day
 
     if sender_id:
@@ -147,7 +147,7 @@ def get_conversations_list(
     # Get paginated results
     paginated_query = f"""
         {base_query}
-        ORDER BY rc.created_at DESC
+        ORDER BY rc.updated_at DESC
         LIMIT :limit OFFSET :offset
     """
     params["limit"] = limit
@@ -412,11 +412,11 @@ def export_conversations_csv(
     params = {}
 
     if date_from:
-        where_clauses.append("rc.created_at >= :date_from")
+        where_clauses.append("rc.updated_at >= :date_from")
         params["date_from"] = date_from
 
     if date_to:
-        where_clauses.append("rc.created_at <= :date_to")
+        where_clauses.append("rc.updated_at <= :date_to")
         params["date_to"] = f"{date_to} 23:59:59"
 
     where_sql = ""
@@ -449,7 +449,7 @@ def export_conversations_csv(
         FROM rasa_conversations rc
         LEFT JOIN conversation_stats cs ON rc.sender_id = cs.sender_id
         {where_sql}
-        ORDER BY rc.created_at DESC
+        ORDER BY rc.updated_at DESC
         LIMIT 10000
     """
 
